@@ -3,6 +3,7 @@ import * as THREE from "https://unpkg.com/three@0.165.0/build/three.module.js";
 const mount = document.querySelector("#sceneMount");
 const phaseNameNode = document.querySelector("#phaseName");
 const coreCountNode = document.querySelector("#coreCount");
+const scoreNode = document.querySelector("#score");
 const timerNode = document.querySelector("#timer");
 const statusBanner = document.querySelector("#statusBanner");
 const startButton = document.querySelector("#startButton");
@@ -31,10 +32,14 @@ let riftGroup;
 let riftLights = [];
 let cores = [];
 let hazards = [];
+let teleporters = [];
 let particles;
 let phaseIndex = 0;
 let collected = 0;
+let score = 0;
 let timeLeft = 90;
+let penaltyCooldown = 0;
+let teleportCooldown = 0;
 let running = false;
 let won = false;
 let startedOnce = false;
@@ -362,20 +367,84 @@ function createEntities() {
     scene.add(mesh);
     return mesh;
   });
+
+  const teleporterData = [
+    { x: -12, z: -7.2, phase: 0, pair: 1 },
+    { x: 12, z: 7.2, phase: 0, pair: 0 },
+    { x: 11.6, z: -7.1, phase: 1, pair: 3 },
+    { x: -11.6, z: 7.1, phase: 1, pair: 2 },
+    { x: -1.2, z: -8.1, phase: 2, pair: 5 },
+    { x: 1.2, z: 8.1, phase: 2, pair: 4 },
+  ];
+
+  teleporters = teleporterData.map((data, index) => {
+    const group = new THREE.Group();
+    group.position.set(data.x, 0.65, data.z);
+    group.userData = { ...data, baseX: data.x, baseZ: data.z, index, radius: 1.05 };
+
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(1.1, 1.1, 1.1),
+      new THREE.MeshStandardMaterial({
+        color: phases[data.phase].color,
+        emissive: phases[data.phase].color,
+        emissiveIntensity: 0.5,
+        roughness: 0.22,
+        metalness: 0.28,
+        transparent: true,
+        opacity: 0.74,
+      }),
+    );
+    block.castShadow = true;
+    group.add(block);
+
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.96, 0.045, 12, 64),
+      new THREE.MeshStandardMaterial({
+        color: phases[data.phase].color,
+        emissive: phases[data.phase].color,
+        emissiveIntensity: 1,
+        transparent: true,
+        opacity: 0.82,
+      }),
+    );
+    ring.rotation.x = Math.PI / 2;
+    group.add(ring);
+
+    const pillar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.18, 0.28, 1.8, 20),
+      new THREE.MeshStandardMaterial({
+        color: phases[data.phase].color,
+        emissive: phases[data.phase].color,
+        emissiveIntensity: 0.42,
+        transparent: true,
+        opacity: 0.45,
+      }),
+    );
+    pillar.position.y = -0.1;
+    group.add(pillar);
+
+    scene.add(group);
+    return group;
+  });
 }
 
 function clearEntities() {
   for (const core of cores) scene.remove(core);
   for (const hazard of hazards) scene.remove(hazard);
+  for (const teleporter of teleporters) scene.remove(teleporter);
   cores = [];
   hazards = [];
+  teleporters = [];
 }
 
 function resetGame() {
   createEntities();
   phaseIndex = 0;
   collected = 0;
+  score = 0;
   timeLeft = 90;
+  penaltyCooldown = 0;
+  teleportCooldown = 0;
   running = false;
   won = false;
   player.position.set(0, 0.48, 0);
@@ -396,6 +465,7 @@ function updateHud() {
   phaseNameNode.textContent = phases[phaseIndex].name;
   phaseNameNode.style.color = `#${phases[phaseIndex].color.toString(16).padStart(6, "0")}`;
   coreCountNode.textContent = `${collected}/9`;
+  scoreNode.textContent = String(score);
   timerNode.textContent = String(Math.max(0, Math.ceil(timeLeft)));
 
   for (const button of phaseButtons) {
@@ -432,6 +502,14 @@ function updatePhaseVisuals() {
     hazard.material.opacity = isActive ? 0.88 : 0.2;
     hazard.material.emissiveIntensity = isActive ? 0.72 : 0.12;
   }
+
+  for (const teleporter of teleporters) {
+    const isActive = teleporter.userData.phase === phaseIndex;
+    teleporter.children[0].material.opacity = isActive ? 0.86 : 0.36;
+    teleporter.children[0].material.emissiveIntensity = isActive ? 0.85 : 0.28;
+    teleporter.children[1].material.opacity = isActive ? 1 : 0.5;
+    teleporter.children[1].material.emissiveIntensity = isActive ? 1.35 : 0.45;
+  }
 }
 
 function onKeyDown(event) {
@@ -467,6 +545,9 @@ function updatePlayer(dt) {
 }
 
 function updateEntities(dt, elapsed) {
+  penaltyCooldown = Math.max(0, penaltyCooldown - dt);
+  teleportCooldown = Math.max(0, teleportCooldown - dt);
+
   riftGroup.rotation.y += dt * 0.18;
   riftGroup.children.forEach((child, index) => {
     child.rotation.z += dt * (index % 2 === 0 ? 0.45 : -0.32);
@@ -491,7 +572,20 @@ function updateEntities(dt, elapsed) {
     const offset = Math.sin(elapsed * data.speed + data.index) * data.range;
     hazard.position.x = data.axis === "x" ? data.baseX + offset : data.baseX;
     hazard.position.z = data.axis === "z" ? data.baseZ + offset : data.baseZ;
-    hazard.rotation.y += dt * 0.18;
+    hazard.rotation.y += dt * (data.phase === phaseIndex ? 0.55 : 2.4);
+    hazard.rotation.x = Math.sin(elapsed * 1.8 + data.index) * 0.18;
+  }
+
+  for (const teleporter of teleporters) {
+    const data = teleporter.userData;
+    const active = data.phase === phaseIndex;
+    const orbit = active ? 0.08 : 0.36;
+    teleporter.position.x = data.baseX + Math.cos(elapsed * 1.35 + data.index) * orbit;
+    teleporter.position.z = data.baseZ + Math.sin(elapsed * 1.35 + data.index) * orbit;
+    teleporter.position.y = 0.65 + Math.sin(elapsed * 2.2 + data.index) * 0.18;
+    teleporter.rotation.y += dt * (active ? 1.8 : 5.2);
+    teleporter.rotation.x = active ? 0 : Math.sin(elapsed * 3.4 + data.index) * 0.45;
+    teleporter.children[1].rotation.z += dt * (active ? 2.2 : -5.4);
   }
 
   const positions = particles.geometry.attributes.position;
@@ -512,11 +606,48 @@ function checkCollisions() {
     if (distance > 0.9) return true;
 
     collected += 1;
+    score += 15;
     timeLeft += 2.5;
     scene.remove(core);
     updateHud();
     return false;
   });
+
+  for (const teleporter of teleporters) {
+    const distance = Math.hypot(playerPos.x - teleporter.position.x, playerPos.z - teleporter.position.z);
+    if (distance > teleporter.userData.radius) continue;
+
+    if (teleporter.userData.phase === phaseIndex) {
+      if (teleportCooldown > 0) continue;
+      const target = teleporters[teleporter.userData.pair];
+      player.position.set(target.position.x, 0.48, target.position.z);
+      score += 10;
+      timeLeft += 1;
+      teleportCooldown = 1.15;
+      showStatus("+10 teleport");
+      window.setTimeout(() => {
+        if (running) hideStatus();
+      }, 480);
+      updateHud();
+      continue;
+    }
+
+    if (penaltyCooldown <= 0) {
+      score = Math.max(0, score - 8);
+      timeLeft = Math.max(0, timeLeft - 3);
+      penaltyCooldown = 0.9;
+      const push = player.position.clone().sub(teleporter.position).setY(0);
+      if (push.lengthSq() > 0) {
+        push.normalize();
+        player.position.addScaledVector(push, 1.45);
+      }
+      showStatus("-8 wrong color");
+      window.setTimeout(() => {
+        if (running) hideStatus();
+      }, 520);
+      updateHud();
+    }
+  }
 
   for (const hazard of hazards) {
     if (hazard.userData.phase !== phaseIndex) continue;
@@ -526,8 +657,9 @@ function checkCollisions() {
     const hitZ = dz < hazard.userData.sz / 2 + 0.45;
     if (hitX && hitZ) {
       player.position.set(0, 0.48, 0);
+      score = Math.max(0, score - 12);
       timeLeft = Math.max(0, timeLeft - 6);
-      showStatus("-6 seconds");
+      showStatus("-12 hazard");
       window.setTimeout(() => {
         if (running) hideStatus();
       }, 420);
