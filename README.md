@@ -12,8 +12,9 @@ HTML, CSS, JavaScript, and Three.js.
 ## Work Sample Focus
 
 The prototype demonstrates a 3D game loop, camera follow, phase-state gameplay
-rules, paired teleport blocks, color-based penalties, arena progression,
-wormhole arena transitions, collision checks, moving hazards, collectible
-entities, lighting, particles, restart flow, responsive layout, and HUD updates.
-The systems are intentionally portable to Godot, Defold, Solar2D, Love2D,
-PyGame, MonoGame, Unity, Unreal, O3DE, Stride, or similar engines.
+rules, paired teleport blocks, randomized mango spawns, randomized spinning
+hazards, color-based penalties, arena progression, wormhole arena transitions,
+collision checks, moving hazards, collectible entities, lighting, particles,
+restart flow, responsive layout, and HUD updates. The systems are intentionally
+portable to Godot, Defold, Solar2D, Love2D, PyGame, MonoGame, Unity, Unreal,
+O3DE, Stride, or similar engines.

@@ -376,24 +376,49 @@ function buildParticles() {
   scene.add(particles);
 }
 
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function randomSign() {
+  return Math.random() < 0.5 ? -1 : 1;
+}
+
+function randomArenaPoint(existing = [], minDistance = 2.4) {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    const point = {
+      x: randomBetween(-arena.halfX + 1.6, arena.halfX - 1.6),
+      z: randomBetween(-arena.halfZ + 1.4, arena.halfZ - 1.4),
+    };
+    const farFromCenter = Math.hypot(point.x, point.z) > 2.3;
+    const farFromOthers = existing.every((other) => Math.hypot(point.x - other.x, point.z - other.z) > minDistance);
+    if (farFromCenter && farFromOthers) return point;
+  }
+
+  return {
+    x: randomBetween(-arena.halfX + 1.6, arena.halfX - 1.6),
+    z: randomBetween(-arena.halfZ + 1.4, arena.halfZ - 1.4),
+  };
+}
+
+function randomPhaseExcept(phase) {
+  const options = [0, 1, 2].filter((candidate) => candidate !== phase);
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 function createEntities() {
   clearEntities();
   const level = arenaLevels[levelIndex];
   levelGoal = level.coreCount;
 
-  const corePositions = [
-    [-10.5, -5.5, 0],
-    [-4.8, -7.1, 1],
-    [2.2, -6.2, 2],
-    [9.7, -4.7, 0],
-    [-11.2, 0.2, 2],
-    [-2.4, 0.6, 0],
-    [6.2, 0.3, 1],
-    [-7.2, 5.7, 1],
-    [8.8, 5.5, 2],
-  ];
+  const occupied = [];
+  const corePositions = Array.from({ length: level.coreCount }, () => {
+    const point = randomArenaPoint(occupied, 3.1);
+    occupied.push(point);
+    return point;
+  });
 
-  cores = corePositions.slice(0, level.coreCount).map(([x, z], index) => {
+  cores = corePositions.map(({ x, z }, index) => {
     const phase = level.phase;
     const group = new THREE.Group();
     group.position.set(x, 0.7, z);
@@ -429,12 +454,29 @@ function createEntities() {
     return group;
   });
 
-  const hazardData = [
-    { x: -7.2, z: -1.8, sx: 1.15, sz: 5.4, phase: 0, axis: "z", range: 3.4, speed: 1.15 },
-    { x: 0.8, z: 2.5, sx: 6.6, sz: 0.95, phase: 2, axis: "x", range: 4.4, speed: 1.0 },
-    { x: 7.8, z: -1.2, sx: 1.1, sz: 6.2, phase: 1, axis: "z", range: 4.2, speed: 1.35 },
-    { x: -1.8, z: -3.7, sx: 4.8, sz: 0.9, phase: level.phase, axis: "x", range: 3.1, speed: 1.45 },
-  ];
+  const hazardCount = 4 + levelIndex;
+  const hazardData = Array.from({ length: hazardCount }, (_, index) => {
+    const point = randomArenaPoint(occupied, 2.8);
+    occupied.push(point);
+    const long = randomBetween(3.4, 6.8);
+    const short = randomBetween(0.75, 1.25);
+    const horizontal = Math.random() < 0.5;
+    const angle = randomBetween(0, Math.PI * 2);
+    return {
+      x: point.x,
+      z: point.z,
+      sx: horizontal ? long : short,
+      sz: horizontal ? short : long,
+      phase: index === 0 ? level.phase : Math.floor(Math.random() * 3),
+      moveX: Math.cos(angle),
+      moveZ: Math.sin(angle),
+      range: randomBetween(1.6, 4.4),
+      speed: randomBetween(0.8, 1.55),
+      spinX: randomBetween(0.45, 2.2) * randomSign(),
+      spinY: randomBetween(1.3, 4.8) * randomSign(),
+      spinZ: randomBetween(0.35, 1.7) * randomSign(),
+    };
+  });
 
   hazards = hazardData.map((data, index) => {
     const speed = data.speed * level.hazardSpeed;
@@ -454,24 +496,42 @@ function createEntities() {
     mesh.position.set(data.x, 0.55, data.z);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    mesh.rotation.y = randomBetween(0, Math.PI);
     mesh.userData = { ...data, speed, range, baseX: data.x, baseZ: data.z, index, radius: Math.max(data.sx, data.sz) / 2 };
     scene.add(mesh);
     return mesh;
   });
 
-  const teleporterData = [
-    { x: -12, z: -7.2, phase: 0, pair: 1 },
-    { x: 12, z: 7.2, phase: 0, pair: 0 },
-    { x: 11.6, z: -7.1, phase: 1, pair: 3 },
-    { x: -11.6, z: 7.1, phase: 1, pair: 2 },
-    { x: -1.2, z: -8.1, phase: 2, pair: 5 },
-    { x: 1.2, z: 8.1, phase: 2, pair: 4 },
-  ];
+  const teleporterData = [];
+  [0, 1, 2].forEach((phase) => {
+    const first = randomArenaPoint(occupied, 3);
+    occupied.push(first);
+    const second = randomArenaPoint(occupied, 3);
+    occupied.push(second);
+    const firstIndex = teleporterData.length;
+    teleporterData.push({ ...first, phase, pair: firstIndex + 1 });
+    teleporterData.push({ ...second, phase, pair: firstIndex });
+  });
 
   teleporters = teleporterData.map((data, index) => {
     const group = new THREE.Group();
     group.position.set(data.x, 0.65, data.z);
-    group.userData = { ...data, baseX: data.x, baseZ: data.z, index, radius: 1.05 };
+    const angle = randomBetween(0, Math.PI * 2);
+    group.userData = {
+      ...data,
+      baseX: data.x,
+      baseZ: data.z,
+      index,
+      radius: 1.05,
+      moveX: Math.cos(angle),
+      moveZ: Math.sin(angle),
+      orbitRadius: randomBetween(0.2, 0.55),
+      orbitSpeed: randomBetween(1.1, 2.1) * randomSign(),
+      spinX: randomBetween(0.7, 2.4) * randomSign(),
+      spinY: randomBetween(2.2, 6.2) * randomSign(),
+      spinZ: randomBetween(0.8, 2.8) * randomSign(),
+      ringSpin: randomBetween(2.4, 6.2) * randomSign(),
+    };
 
     const block = new THREE.Mesh(
       new THREE.BoxGeometry(1.1, 1.1, 1.1),
@@ -675,22 +735,27 @@ function updateEntities(dt, elapsed) {
   for (const hazard of hazards) {
     const data = hazard.userData;
     const offset = Math.sin(elapsed * data.speed + data.index) * data.range;
-    hazard.position.x = data.axis === "x" ? data.baseX + offset : data.baseX;
-    hazard.position.z = data.axis === "z" ? data.baseZ + offset : data.baseZ;
-    hazard.rotation.y += dt * (data.phase === phaseIndex ? 0.55 : 2.4);
-    hazard.rotation.x = Math.sin(elapsed * 1.8 + data.index) * 0.18;
+    hazard.position.x = THREE.MathUtils.clamp(data.baseX + data.moveX * offset, -arena.halfX + 1, arena.halfX - 1);
+    hazard.position.z = THREE.MathUtils.clamp(data.baseZ + data.moveZ * offset, -arena.halfZ + 1, arena.halfZ - 1);
+    const spinBoost = data.phase === phaseIndex ? 0.55 : 1.25;
+    hazard.rotation.x += dt * data.spinX * spinBoost;
+    hazard.rotation.y += dt * data.spinY * spinBoost;
+    hazard.rotation.z += dt * data.spinZ * spinBoost;
   }
 
   for (const teleporter of teleporters) {
     const data = teleporter.userData;
     const active = data.phase === phaseIndex;
-    const orbit = active ? 0.08 : 0.36;
-    teleporter.position.x = data.baseX + Math.cos(elapsed * 1.35 + data.index) * orbit;
-    teleporter.position.z = data.baseZ + Math.sin(elapsed * 1.35 + data.index) * orbit;
+    const orbit = active ? data.orbitRadius * 0.35 : data.orbitRadius;
+    const movement = Math.sin(elapsed * data.orbitSpeed + data.index) * orbit;
+    teleporter.position.x = THREE.MathUtils.clamp(data.baseX + data.moveX * movement, -arena.halfX + 1, arena.halfX - 1);
+    teleporter.position.z = THREE.MathUtils.clamp(data.baseZ + data.moveZ * movement, -arena.halfZ + 1, arena.halfZ - 1);
     teleporter.position.y = 0.65 + Math.sin(elapsed * 2.2 + data.index) * 0.18;
-    teleporter.rotation.y += dt * (active ? 1.8 : 5.2);
-    teleporter.rotation.x = active ? 0 : Math.sin(elapsed * 3.4 + data.index) * 0.45;
-    teleporter.children[1].rotation.z += dt * (active ? 2.2 : -5.4);
+    const spinBoost = active ? 0.7 : 1.45;
+    teleporter.rotation.x += dt * data.spinX * spinBoost;
+    teleporter.rotation.y += dt * data.spinY * spinBoost;
+    teleporter.rotation.z += dt * data.spinZ * spinBoost;
+    teleporter.children[1].rotation.z += dt * data.ringSpin * (active ? 0.75 : 1.45);
   }
 
   const positions = particles.geometry.attributes.position;
@@ -816,9 +881,11 @@ function completeArena() {
   dropTransition = {
     stage: "suck",
     elapsed: 0,
-    duration: 1.15,
+    duration: 1.45,
     nextLevel,
     start: player.position.clone(),
+    startAngle: Math.atan2(player.position.z, player.position.x),
+    startRadius: Math.max(2.2, Math.hypot(player.position.x, player.position.z)),
   };
 }
 
@@ -878,19 +945,24 @@ function updateDropTransition(dt) {
   const eased = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
   if (dropTransition.stage === "suck") {
-    player.position.x = THREE.MathUtils.lerp(dropTransition.start.x, 0, eased);
-    player.position.z = THREE.MathUtils.lerp(dropTransition.start.z, 0, eased);
-    player.position.y = THREE.MathUtils.lerp(dropTransition.start.y, -2.3, eased);
+    const spiralRadius = THREE.MathUtils.lerp(dropTransition.startRadius, 0.05, eased);
+    const spiralAngle = dropTransition.startAngle + progress * Math.PI * 5.5;
+    player.position.x = Math.cos(spiralAngle) * spiralRadius;
+    player.position.z = Math.sin(spiralAngle) * spiralRadius;
+    player.position.y = THREE.MathUtils.lerp(dropTransition.start.y + 0.35, -2.6, eased);
+    player.rotation.y += dt * 10;
     player.scale.setScalar(THREE.MathUtils.lerp(1, 0.18, eased));
     wormholeGroup.position.set(0, 0.02, 0);
     wormholeGroup.scale.setScalar(THREE.MathUtils.lerp(0.35, 1.25, Math.min(progress * 1.4, 1)));
     wormholeLight.position.set(0, 1.2, 0);
     wormholeLight.intensity = THREE.MathUtils.lerp(1.2, 14, Math.sin(progress * Math.PI));
   } else {
-    const wobble = Math.sin(progress * Math.PI * 5) * (1 - progress) * 0.36;
-    player.position.x = wobble;
-    player.position.z = -wobble * 0.6;
-    player.position.y = THREE.MathUtils.lerp(8.8, 0.48, eased);
+    const dropRadius = (1 - eased) * 1.15;
+    const dropAngle = progress * Math.PI * 4.8;
+    player.position.x = Math.cos(dropAngle) * dropRadius;
+    player.position.z = Math.sin(dropAngle) * dropRadius * 0.65;
+    player.position.y = THREE.MathUtils.lerp(9.4, 0.48, eased);
+    player.rotation.y += dt * 8;
     player.scale.setScalar(THREE.MathUtils.lerp(0.55, 1, eased));
     wormholeGroup.position.set(0, THREE.MathUtils.lerp(6.9, 0.02, Math.min(progress * 1.2, 1)), 0);
     wormholeGroup.scale.setScalar(THREE.MathUtils.lerp(1.45, 0.55, progress));
@@ -914,9 +986,9 @@ function updateDropTransition(dt) {
       dropTransition = {
         stage: "drop",
         elapsed: 0,
-        duration: 1.25,
+        duration: 1.45,
       };
-      player.position.set(0, 8.8, 0);
+      player.position.set(0, 9.4, 0);
       player.scale.setScalar(0.55);
       wormholeGroup.visible = true;
       return;
