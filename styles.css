@@ -422,39 +422,11 @@ h3 {
   background: #07100f;
 }
 
-.circuit-copy,
 .circuit-hud,
 .circuit-dock,
 .circuit-status {
   position: relative;
   z-index: 2;
-}
-
-.circuit-copy {
-  width: min(620px, calc(100vw - 36px));
-  padding: 16vh 0 0 5vw;
-  transition: opacity 420ms ease, transform 420ms ease, filter 420ms ease;
-}
-
-#circuitRoot.is-playing .circuit-copy {
-  opacity: 0;
-  transform: translateY(-18px);
-  filter: blur(8px);
-  pointer-events: none;
-}
-
-#circuitRoot:not(.is-playing) .circuit-copy {
-  opacity: 1;
-  transform: none;
-  filter: none;
-  pointer-events: auto;
-}
-
-.circuit-copy p:not(.eyebrow) {
-  max-width: 54ch;
-  color: var(--muted);
-  font-size: 1.08rem;
-  line-height: 1.58;
 }
 
 .circuit-hud {
@@ -525,6 +497,20 @@ h3 {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+}
+
+.circuit-details {
+  background:
+    linear-gradient(180deg, #07100f, #111c18 56%, #0b1110),
+    #0b1110;
+}
+
+.section-heading > p:not(.eyebrow) {
+  max-width: 62ch;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 1.08rem;
+  line-height: 1.58;
 }
 
 .system-grid {
@@ -603,10 +589,6 @@ h3 {
 
   .circuit-root {
     min-height: 980px;
-  }
-
-  .circuit-copy {
-    padding-top: 112px;
   }
 
   .circuit-hud {
@@ -737,9 +719,4 @@ h3 {
     max-width: none;
   }
 
-  .circuit-copy {
-    width: calc(100vw - 36px);
-    padding-top: 108px;
-    padding-left: 18px;
-  }
 }

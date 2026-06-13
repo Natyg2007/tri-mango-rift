@@ -96,22 +96,6 @@
       <div id="circuitRoot">
         <canvas id="circuitGame" width="1280" height="720" aria-label="Mango Phase Circuit playable game"></canvas>
 
-        <section class="circuit-copy" aria-label="Mango Phase Circuit overview">
-          <p class="eyebrow">Second playable sample</p>
-          <h2>Mango Phase Circuit</h2>
-          <p>
-            A flat 2D arcade/circuit prototype for Defold, Solar2D, Love2D,
-            Cocos2d-x, PyGame, and similar 2D engines. Random mangos, spinning
-            blocks, same-color teleport pads, and wormhole arena transitions.
-          </p>
-          <div class="build-strip" aria-label="2D sample highlights">
-            <span>2D Canvas</span>
-            <span>Random arenas</span>
-            <span>Teleport pads</span>
-            <span>Wormhole flow</span>
-          </div>
-        </section>
-
         <section class="circuit-hud" aria-label="Mango Phase Circuit status">
           <div><span>Phase</span><strong id="circuitPhaseName">Sun</strong></div>
           <div><span>Mangos</span><strong id="circuitMangoCount">0/3</strong></div>
@@ -133,6 +117,43 @@
         </section>
 
         <div class="circuit-status status-banner" id="circuitStatus">Press Start</div>
+      </div>
+    </section>
+
+    <section class="section circuit-details" aria-label="Mango Phase Circuit details">
+      <div class="section-heading">
+        <p class="eyebrow">Second playable sample</p>
+        <h2>Mango Phase Circuit</h2>
+        <p>
+          A flat 2D arcade/circuit prototype for Defold, Solar2D, Love2D,
+          Cocos2d-x, PyGame, and similar 2D engines.
+        </p>
+      </div>
+      <div class="system-grid">
+        <article>
+          <span class="system-icon">01</span>
+          <h3>2D phase routing</h3>
+          <p>
+            The player swaps between Sun, Tide, and Ember phases to collect
+            matching mangos and use same-color teleport pads.
+          </p>
+        </article>
+        <article>
+          <span class="system-icon">02</span>
+          <h3>Arcade hazard loop</h3>
+          <p>
+            Random mango placement, spinning blocks, wrong-color penalties,
+            score tracking, timer pressure, and restartable input handling.
+          </p>
+        </article>
+        <article>
+          <span class="system-icon">03</span>
+          <h3>Stage progression</h3>
+          <p>
+            Clearing a color phase pulls the player through a center wormhole
+            and drops them into a harder arena with denser movement patterns.
+          </p>
+        </article>
       </div>
     </section>
 
