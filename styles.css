@@ -408,12 +408,41 @@ h3 {
     linear-gradient(90deg, rgba(8, 13, 12, 0.82), rgba(8, 13, 12, 0.2) 48%, rgba(8, 13, 12, 0.58));
 }
 
+.orbit-root {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(82, 185, 117, 0.18), transparent 34%),
+    radial-gradient(circle at 76% 22%, rgba(244, 198, 79, 0.14), transparent 30%),
+    radial-gradient(circle at 18% 78%, rgba(240, 92, 63, 0.13), transparent 32%),
+    #070e10;
+}
+
+.orbit-root::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 48%, transparent 0 34%, rgba(8, 13, 12, 0.2) 62%, rgba(8, 13, 12, 0.76) 100%),
+    linear-gradient(90deg, rgba(8, 13, 12, 0.74), rgba(8, 13, 12, 0.12) 48%, rgba(8, 13, 12, 0.62));
+}
+
 #circuitRoot {
   position: absolute;
   inset: 0;
 }
 
-#circuitGame {
+#orbitRoot {
+  position: absolute;
+  inset: 0;
+}
+
+#circuitGame,
+#orbitGame {
   position: absolute;
   inset: 0;
   display: block;
@@ -424,12 +453,16 @@ h3 {
 
 .circuit-hud,
 .circuit-dock,
-.circuit-status {
+.circuit-status,
+.orbit-hud,
+.orbit-dock,
+.orbit-status {
   position: relative;
   z-index: 2;
 }
 
-.circuit-hud {
+.circuit-hud,
+.orbit-hud {
   position: absolute;
   top: 92px;
   right: 28px;
@@ -450,7 +483,15 @@ h3 {
   background: rgba(255, 255, 255, 0.055);
 }
 
-.circuit-hud span {
+.orbit-hud div {
+  min-width: 76px;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.circuit-hud span,
+.orbit-hud span {
   display: block;
   color: var(--muted);
   font-size: 0.7rem;
@@ -458,12 +499,14 @@ h3 {
   text-transform: uppercase;
 }
 
-.circuit-hud strong {
+.circuit-hud strong,
+.orbit-hud strong {
   display: block;
   margin-top: 2px;
 }
 
-.circuit-dock {
+.circuit-dock,
+.orbit-dock {
   position: absolute;
   left: 50%;
   bottom: 22px;
@@ -481,25 +524,40 @@ h3 {
   backdrop-filter: blur(18px);
 }
 
-.circuit-dock p {
+.circuit-dock p,
+.orbit-dock p {
   max-width: 520px;
   margin: 0;
   color: var(--muted);
   line-height: 1.35;
 }
 
-.circuit-status {
+.boost-button {
+  min-height: 42px;
+  border: 1px solid rgba(255, 248, 233, 0.24);
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #08100e;
+  background: var(--leaf);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.circuit-status,
+.orbit-status {
   position: absolute;
   z-index: 2;
 }
 
-.circuit-status {
+.circuit-status,
+.orbit-status {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
 }
 
-.circuit-details {
+.circuit-details,
+.orbit-details {
   background:
     linear-gradient(180deg, #07100f, #111c18 56%, #0b1110),
     #0b1110;
@@ -591,7 +649,12 @@ h3 {
     min-height: 980px;
   }
 
-  .circuit-hud {
+  .orbit-root {
+    min-height: 980px;
+  }
+
+  .circuit-hud,
+  .orbit-hud {
     top: auto;
     right: 18px;
     left: 18px;
@@ -599,13 +662,15 @@ h3 {
     justify-content: space-between;
   }
 
-  .circuit-dock {
+  .circuit-dock,
+  .orbit-dock {
     align-items: stretch;
     flex-direction: column;
     bottom: 18px;
   }
 
-  .circuit-dock p {
+  .circuit-dock p,
+  .orbit-dock p {
     max-width: none;
   }
 }
@@ -701,21 +766,29 @@ h3 {
     min-height: 100svh;
   }
 
-  .circuit-hud {
+  .orbit-root {
+    min-height: 100svh;
+  }
+
+  .circuit-hud,
+  .orbit-hud {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
-  .circuit-hud div {
+  .circuit-hud div,
+  .orbit-hud div {
     min-width: 0;
   }
 
-  .circuit-dock {
+  .circuit-dock,
+  .orbit-dock {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .circuit-dock p {
+  .circuit-dock p,
+  .orbit-dock p {
     max-width: none;
   }
 

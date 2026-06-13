@@ -22,6 +22,7 @@
         <nav aria-label="Page sections">
           <a href="#game-root">Play</a>
           <a href="#second-sample">2D Sample</a>
+          <a href="#third-sample">Orbit Game</a>
           <a href="#systems">Systems</a>
           <a href="#notes">Notes</a>
         </nav>
@@ -43,6 +44,7 @@
         </div>
         <div class="hero-links">
           <a href="#second-sample">Play the 2D sample</a>
+          <a href="#third-sample">Play orbit sample</a>
           <a href="./circuit/">Open 2D sample directly</a>
         </div>
       </section>
@@ -157,6 +159,67 @@
       </div>
     </section>
 
+    <section class="orbit-root" id="third-sample">
+      <div id="orbitRoot">
+        <canvas id="orbitGame" width="1280" height="720" aria-label="Orbit Bloom playable game"></canvas>
+
+        <section class="orbit-hud" aria-label="Orbit Bloom status">
+          <div><span>Zone</span><strong id="orbitZone">One</strong></div>
+          <div><span>Seeds</span><strong id="orbitSeeds">0/5</strong></div>
+          <div><span>Energy</span><strong id="orbitEnergy">100</strong></div>
+          <div><span>Shield</span><strong id="orbitShield">3</strong></div>
+          <div><span>Score</span><strong id="orbitScore">0</strong></div>
+        </section>
+        <section class="orbit-dock" aria-label="Orbit Bloom controls">
+          <div class="actions">
+            <button id="orbitStartButton" type="button">Start</button>
+            <button id="orbitResetButton" type="button">Reset</button>
+          </div>
+          <p>Mouse/touch aims the vector. Hold Space or press Boost to burn energy through gravity wells.</p>
+          <button id="orbitBoostButton" class="boost-button" type="button">Boost</button>
+        </section>
+
+        <div class="orbit-status status-banner" id="orbitStatus">Press Start</div>
+      </div>
+    </section>
+
+    <section class="section orbit-details" aria-label="Orbit Bloom details">
+      <div class="section-heading">
+        <p class="eyebrow">Third playable sample</p>
+        <h2>Orbit Bloom</h2>
+        <p>
+          A gravity movement prototype focused on slingshot navigation, boost
+          timing, orbiting hazards, and extraction-gate progression.
+        </p>
+      </div>
+      <div class="system-grid">
+        <article>
+          <span class="system-icon">01</span>
+          <h3>Momentum movement</h3>
+          <p>
+            The player steers a drifting drone with acceleration, drag, boost
+            burn, and gravity wells that can be used for fast routing.
+          </p>
+        </article>
+        <article>
+          <span class="system-icon">02</span>
+          <h3>Readable hazard design</h3>
+          <p>
+            Orbiting sentinels, mine rings, shield loss, hit cooldowns, and
+            clear telegraphs make the challenge different from the phase games.
+          </p>
+        </article>
+        <article>
+          <span class="system-icon">03</span>
+          <h3>Objective pacing</h3>
+          <p>
+            Collect every seed to open the extraction gate, then enter a new
+            zone with stronger wells, tighter routes, and faster hazards.
+          </p>
+        </article>
+      </div>
+    </section>
+
     <section class="section" id="systems">
       <div class="section-heading">
         <p class="eyebrow">What it demonstrates</p>
@@ -198,13 +261,15 @@
         <h2>Use this as the work sample link</h2>
       </div>
       <p>
-        This standalone HTML/CSS/JavaScript project uses Three.js for the core 3D
-        scene. It is designed to show gameplay implementation, engine thinking,
-        visual polish, and a playable mechanic instead of a static portfolio page.
+        This standalone HTML/CSS/JavaScript project includes one Three.js 3D
+        game and two separate 2D canvas prototypes. It is designed to show
+        gameplay implementation, engine thinking, visual polish, and multiple
+        playable mechanics instead of a static portfolio page.
       </p>
     </section>
 
     <script type="module" src="./app.js"></script>
     <script src="./circuit-inline.js"></script>
+    <script src="./orbit-inline.js"></script>
   </body>
 </html>
