@@ -599,6 +599,7 @@ function updateEntities(dt, elapsed) {
 
 function checkCollisions() {
   const playerPos = player.position;
+  let collectedCoreThisFrame = false;
 
   cores = cores.filter((core) => {
     if (core.userData.phase !== phaseIndex) return true;
@@ -608,10 +609,20 @@ function checkCollisions() {
     collected += 1;
     score += 15;
     timeLeft += 2.5;
+    collectedCoreThisFrame = true;
     scene.remove(core);
     updateHud();
     return false;
   });
+
+  if (collectedCoreThisFrame && collected < 9) {
+    player.position.set(0, 0.48, 0);
+    switchPhase(phaseIndex + 1);
+    showStatus("Core banked");
+    window.setTimeout(() => {
+      if (running) hideStatus();
+    }, 520);
+  }
 
   for (const teleporter of teleporters) {
     const distance = Math.hypot(playerPos.x - teleporter.position.x, playerPos.z - teleporter.position.z);
@@ -685,6 +696,8 @@ function updateGame(dt, elapsed) {
   if (collected === 9) {
     won = true;
     running = false;
+    player.position.set(0, 0.48, 0);
+    switchPhase(phaseIndex + 1);
     showStatus("Rift stabilized");
   }
 
