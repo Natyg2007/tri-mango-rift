@@ -23,6 +23,7 @@
           <a href="#game-root">3D</a>
           <a href="#second-sample">2D Phase</a>
           <a href="#third-sample">Orbit</a>
+          <a href="#technical">Tech</a>
           <a href="#notes">Overview</a>
         </nav>
       </header>
@@ -39,6 +40,7 @@
           <span>3D arena</span>
           <span>Phase logic</span>
           <span>Collision loop</span>
+          <span>Procedural stages</span>
           <span>Engine-portable systems</span>
         </div>
         <div class="hero-links">
@@ -254,6 +256,63 @@
             zone with stronger wells, tighter routes, and faster hazards.
           </p>
         </article>
+      </div>
+    </section>
+
+    <section class="section technical" id="technical" aria-label="Technical systems">
+      <div class="section-heading">
+        <p class="eyebrow">Technical systems</p>
+        <h2>Shared architecture across three playable games.</h2>
+        <p>
+          The games use separate mechanics, but they share the same production
+          concerns: deterministic state, input handling, collision checks,
+          procedural placement, responsive HUDs, and restartable loops.
+        </p>
+      </div>
+      <div class="technical-grid">
+        <article>
+          <span>Runtime</span>
+          <h3>State-driven game flow</h3>
+          <p>
+            Start, reset, win, failure, arena transition, phase transition, and
+            HUD updates are handled through explicit gameplay state instead of
+            static page interactions.
+          </p>
+        </article>
+        <article>
+          <span>Gameplay</span>
+          <h3>Reusable entity patterns</h3>
+          <p>
+            Collectibles, hazards, teleporters, gravity wells, gates, particles,
+            timers, scoring, and collision cooldowns are modeled as independent
+            entities updated every frame.
+          </p>
+        </article>
+        <article>
+          <span>Rendering</span>
+          <h3>Layered visual feedback</h3>
+          <p>
+            Each game combines canvas or Three.js rendering with HUD overlays,
+            animated status messages, particle effects, readable hazards, and
+            responsive composition.
+          </p>
+        </article>
+        <article>
+          <span>Controls</span>
+          <h3>Desktop and touch input</h3>
+          <p>
+            Keyboard, button, mouse, and touch controls support different play
+            styles while keeping each prototype restartable without refreshing
+            the page.
+          </p>
+        </article>
+      </div>
+      <div class="signal-row" aria-label="System coverage">
+        <span>Three independent loops</span>
+        <span>2D and 3D rendering</span>
+        <span>Procedural placement</span>
+        <span>Responsive HUDs</span>
+        <span>Animated transitions</span>
       </div>
     </section>
 
