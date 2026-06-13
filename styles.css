@@ -201,6 +201,32 @@ h3 {
   margin-top: 24px;
 }
 
+.hero-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.hero-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid rgba(255, 248, 233, 0.24);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  font-weight: 900;
+  text-decoration: none;
+  backdrop-filter: blur(18px);
+}
+
+.hero-links a:first-child {
+  color: #08100e;
+  background: var(--sun);
+}
+
 .build-strip span,
 .phase-button,
 .hud-panel,
@@ -377,6 +403,15 @@ h3 {
   color: var(--muted);
   font-size: 1.05rem;
   line-height: 1.58;
+}
+
+.sample-intro .direct-note {
+  margin-top: 10px;
+}
+
+.sample-intro a {
+  color: var(--sun);
+  font-weight: 900;
 }
 
 .sample-frame-wrap {
