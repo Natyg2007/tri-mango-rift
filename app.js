@@ -915,6 +915,15 @@ function hideStatus() {
   statusBanner.classList.add("hidden");
 }
 
+function returnToInfoPage() {
+  const root = document.querySelector("#game-root");
+  root.classList.remove("is-playing");
+  running = false;
+  keys.clear();
+  hideStatus();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function loop() {
   const dt = Math.min(clock.getDelta(), 0.033);
   const elapsed = clock.elapsedTime;
@@ -1008,8 +1017,7 @@ function updateDropTransition(dt) {
       wormholeLight.intensity = 0;
       player.position.set(0, 0.48, 0);
       player.scale.setScalar(1);
-      document.querySelector("#game-root").classList.remove("is-playing");
-      showStatus("Press Start");
+      returnToInfoPage();
       return;
     }
 

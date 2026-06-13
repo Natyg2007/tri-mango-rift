@@ -144,6 +144,13 @@ nav a:hover {
   pointer-events: none;
 }
 
+#game-root:not(.is-playing) .hero-copy {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  pointer-events: auto;
+}
+
 .eyebrow {
   margin: 0 0 10px;
   color: var(--sun);
