@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mango Phase Circuit | 2D Work Sample</title>
+    <meta
+      name="description"
+      content="A playable 2D browser game prototype with random arenas, teleport pads, spinning hazards, mango collection, and wormhole transitions."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main id="gameRoot">
+      <canvas id="game" width="1280" height="720" aria-label="Playable 2D game"></canvas>
+
+      <header class="topbar">
+        <a class="brand" href="#gameRoot" aria-label="Mango Phase Circuit home">
+          <span class="brand-mark"></span>
+          <span>Mango Phase Circuit</span>
+        </a>
+        <nav aria-label="Sections">
+          <a href="#gameRoot">Play</a>
+          <a href="#systems">Systems</a>
+          <a href="#notes">Notes</a>
+        </nav>
+      </header>
+
+      <section class="intro-panel">
+        <p class="eyebrow">Playable 2D arcade prototype</p>
+        <h1>Route through randomized phase circuits.</h1>
+        <p>
+          A top-down 2D work sample built around phase-matched teleporters,
+          random mango placement, spinning penalty blocks, arena progression,
+          and a visible wormhole transition.
+        </p>
+        <div class="chips">
+          <span>2D Canvas</span>
+          <span>Random arenas</span>
+          <span>Teleport logic</span>
+          <span>Wormhole transitions</span>
+        </div>
+      </section>
+
+      <section class="hud" aria-label="Game status">
+        <div><span>Phase</span><strong id="phaseName">Sun</strong></div>
+        <div><span>Mangos</span><strong id="mangoCount">0/3</strong></div>
+        <div><span>Score</span><strong id="score">0</strong></div>
+        <div><span>Arena</span><strong id="arenaName">Easy</strong></div>
+        <div><span>Time</span><strong id="timer">90</strong></div>
+      </section>
+
+      <section class="dock" aria-label="Game controls">
+        <div class="actions">
+          <button id="startButton" type="button">Start</button>
+          <button id="resetButton" type="button">Reset</button>
+        </div>
+        <div class="phase-buttons" aria-label="Phase controls">
+          <button class="phase-button active" data-phase="0" type="button"><i class="sun"></i>Sun</button>
+          <button class="phase-button" data-phase="1" type="button"><i class="tide"></i>Tide</button>
+          <button class="phase-button" data-phase="2" type="button"><i class="ember"></i>Ember</button>
+        </div>
+        <p>WASD/arrows move. Same-color pads teleport. Wrong-color blocks subtract points.</p>
+      </section>
+
+      <div class="status" id="status">Press Start</div>
+    </main>
+
+    <section class="section" id="systems">
+      <p class="eyebrow">What it demonstrates</p>
+      <h2>Different from the 3D sample</h2>
+      <div class="cards">
+        <article>
+          <span>01</span>
+          <h3>2D engine-style loop</h3>
+          <p>Canvas update/render loop, input state, collision checks, UI state, and resettable arena data.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>Randomized gameplay</h3>
+          <p>Mangos, teleport pads, and spinning hazards are placed differently each arena.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Clear visual rules</h3>
+          <p>Same-color objects reward routing. Wrong-color spinning blocks punish bad phase choices.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section note" id="notes">
+      <div>
+        <p class="eyebrow">Submission note</p>
+        <h2>Second work sample link</h2>
+      </div>
+      <p>
+        This project intentionally differs from Tri-Mango Rift 3D: it is a
+        flatter 2D arcade prototype that maps well to Defold, Solar2D, Love2D,
+        Cocos2d-x, PyGame, and similar 2D engines.
+      </p>
+    </section>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

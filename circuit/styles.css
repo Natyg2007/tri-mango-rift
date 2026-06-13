@@ -1,14 +1,14 @@
 :root {
   color-scheme: dark;
   --ink: #fff8e9;
-  --muted: #c9d0c3;
-  --deep: #080d0c;
-  --panel: rgba(10, 18, 16, 0.68);
+  --muted: #c9d4ca;
+  --bg: #07100f;
+  --panel: rgba(8, 16, 14, 0.72);
   --line: rgba(255, 248, 233, 0.16);
-  --sun: #f4c64f;
-  --tide: #55c2e4;
-  --ember: #f05c3f;
-  --leaf: #52b975;
+  --sun: #f6c64f;
+  --tide: #54c3e8;
+  --ember: #f35b3e;
+  --leaf: #56c27b;
 }
 
 * {
@@ -22,7 +22,7 @@ html {
 body {
   margin: 0;
   color: var(--ink);
-  background: #0b1110;
+  background: #09110f;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -36,66 +36,62 @@ button {
   font: inherit;
 }
 
-#game-root {
+#gameRoot {
   position: relative;
   min-height: 100svh;
   overflow: hidden;
+  background:
+    radial-gradient(circle at 70% 35%, rgba(84, 195, 232, 0.18), transparent 32%),
+    radial-gradient(circle at 35% 62%, rgba(246, 198, 79, 0.18), transparent 34%),
+    #07100f;
   isolation: isolate;
-  background: #07100f;
 }
 
-#sceneMount {
+canvas {
   position: absolute;
   inset: 0;
-  z-index: 0;
-}
-
-#sceneMount canvas {
-  display: block;
   width: 100%;
   height: 100%;
 }
 
-#game-root::after {
+#gameRoot::after {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 64% 44%, transparent 0 28%, rgba(8, 13, 12, 0.22) 58%, rgba(8, 13, 12, 0.74) 100%),
-    linear-gradient(90deg, rgba(8, 13, 12, 0.82), rgba(8, 13, 12, 0.18) 44%, rgba(8, 13, 12, 0.54));
+    radial-gradient(circle at 58% 48%, transparent 0 36%, rgba(7, 16, 15, 0.45) 72%),
+    linear-gradient(90deg, rgba(7, 16, 15, 0.82), rgba(7, 16, 15, 0.2) 48%, rgba(7, 16, 15, 0.58));
+  z-index: 1;
 }
 
 .topbar,
-.hero-copy,
-.hud-panel,
-.control-dock,
-.status-banner {
+.intro-panel,
+.hud,
+.dock,
+.status {
   position: relative;
   z-index: 2;
 }
 
 .topbar {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  inset: 0 0 auto;
+  min-height: 68px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 68px;
   padding: 0 28px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(8, 13, 12, 0.78), rgba(8, 13, 12, 0.12));
+  background: linear-gradient(180deg, rgba(7, 16, 15, 0.84), rgba(7, 16, 15, 0.1));
   backdrop-filter: blur(14px);
 }
 
 .brand,
 nav,
-.build-strip,
-.hud-panel,
-.control-dock,
+.chips,
+.hud,
+.dock,
 .actions,
 .phase-buttons {
   display: flex;
@@ -113,7 +109,7 @@ nav,
   height: 22px;
   border-radius: 6px;
   background: linear-gradient(135deg, var(--sun) 0 33%, var(--tide) 33% 66%, var(--ember) 66%);
-  box-shadow: 0 0 22px rgba(244, 198, 79, 0.45);
+  box-shadow: 0 0 22px rgba(246, 198, 79, 0.42);
 }
 
 nav {
@@ -122,33 +118,27 @@ nav {
 
 nav a {
   color: var(--muted);
-  font-size: 0.94rem;
   font-weight: 850;
   text-decoration: none;
 }
 
-nav a:hover {
-  color: var(--ink);
-}
-
-.hero-copy {
-  width: min(560px, calc(100vw - 36px));
+.intro-panel {
+  width: min(650px, calc(100vw - 36px));
   padding: 16vh 0 0 5vw;
   transition: opacity 420ms ease, transform 420ms ease, filter 420ms ease;
 }
 
-#game-root.is-playing .hero-copy {
+#gameRoot.is-playing .intro-panel {
   opacity: 0;
   transform: translateY(-18px);
   filter: blur(8px);
   pointer-events: none;
 }
 
-#game-root:not(.is-playing) .hero-copy {
+#gameRoot:not(.is-playing) .intro-panel {
   opacity: 1;
   transform: none;
   filter: none;
-  pointer-events: auto;
 }
 
 .eyebrow {
@@ -170,44 +160,34 @@ p {
 h1 {
   margin: 0;
   font-size: clamp(2.8rem, 6vw, 6.4rem);
-  line-height: 0.93;
+  line-height: 0.94;
   letter-spacing: 0;
-  text-wrap: balance;
 }
 
 h2 {
-  margin: 0;
-  font-size: clamp(1.75rem, 3vw, 2.65rem);
-  line-height: 1.08;
-  letter-spacing: 0;
+  margin: 0 0 22px;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
 }
 
-h3 {
-  margin: 0 0 10px;
-  font-size: 1.1rem;
-  line-height: 1.2;
-}
-
-.summary {
-  max-width: 52ch;
+.intro-panel p:not(.eyebrow) {
+  max-width: 58ch;
   color: var(--muted);
   font-size: 1.08rem;
-  line-height: 1.6;
+  line-height: 1.58;
 }
 
-.build-strip {
+.chips {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 24px;
 }
 
-.build-strip span,
-.phase-button,
-.hud-panel,
-.control-dock,
-.status-banner,
-.system-grid article,
-.notes {
+.chips span,
+.hud,
+.dock,
+.status,
+.cards article,
+.note {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -215,53 +195,50 @@ h3 {
   backdrop-filter: blur(18px);
 }
 
-.build-strip span {
+.chips span {
   display: inline-flex;
   align-items: center;
   min-height: 36px;
   padding: 0 12px;
-  color: #e8ecdf;
-  font-size: 0.9rem;
   font-weight: 850;
 }
 
-.hud-panel {
+.hud {
   position: absolute;
   top: 92px;
   right: 28px;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
 }
 
-.hud-panel div {
-  min-width: 82px;
-  padding: 8px 10px;
+.hud div {
+  min-width: 76px;
   border-radius: 7px;
+  padding: 8px 10px;
   background: rgba(255, 255, 255, 0.055);
 }
 
-.hud-panel span {
+.hud span {
   display: block;
   color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 900;
+  font-size: 0.7rem;
+  font-weight: 950;
   text-transform: uppercase;
 }
 
-.hud-panel strong {
+.hud strong {
   display: block;
   margin-top: 2px;
-  font-size: 1.05rem;
 }
 
-.control-dock {
+.dock {
   position: absolute;
   left: 50%;
-  bottom: 26px;
+  bottom: 22px;
   transform: translateX(-50%);
-  width: min(760px, calc(100vw - 36px));
+  width: min(850px, calc(100vw - 36px));
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   padding: 12px;
 }
 
@@ -273,21 +250,18 @@ h3 {
 .actions button,
 .phase-button {
   min-height: 42px;
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0 14px;
   color: var(--ink);
+  background: rgba(255, 255, 255, 0.08);
   font-weight: 950;
   cursor: pointer;
 }
 
-.actions button {
-  border: 1px solid rgba(255, 248, 233, 0.24);
+.actions button:first-child {
+  color: #08100e;
   background: var(--sun);
-}
-
-.actions button:last-child {
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.1);
 }
 
 .phase-button {
@@ -295,13 +269,11 @@ h3 {
   align-items: center;
   gap: 7px;
   color: var(--muted);
-  background: rgba(255, 255, 255, 0.06);
 }
 
 .phase-button.active {
   color: var(--ink);
-  border-color: rgba(255, 248, 233, 0.48);
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .phase-button i {
@@ -322,21 +294,19 @@ h3 {
   background: var(--ember);
 }
 
-.control-dock p {
-  max-width: 230px;
+.dock p {
+  max-width: 270px;
   margin: 0;
   color: var(--muted);
-  font-size: 0.9rem;
   line-height: 1.35;
 }
 
-.status-banner {
+.status {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   padding: 12px 18px;
-  color: var(--ink);
   font-size: clamp(1.4rem, 3vw, 2.6rem);
   font-weight: 950;
   text-align: center;
@@ -344,80 +314,27 @@ h3 {
   transition: opacity 180ms ease, transform 180ms ease;
 }
 
-.status-banner.hidden {
+.status.hidden {
   opacity: 0;
   transform: translate(-50%, -46%);
 }
 
 .section {
   padding: 76px 5vw;
-  background:
-    linear-gradient(180deg, #0b1110, #111c18 54%, #0b1110),
-    #0b1110;
+  background: linear-gradient(180deg, #09110f, #111d18 55%, #09110f);
 }
 
-.section-heading {
-  margin-bottom: 24px;
-}
-
-.second-sample {
-  background:
-    radial-gradient(circle at 72% 22%, rgba(84, 195, 232, 0.14), transparent 30%),
-    radial-gradient(circle at 18% 70%, rgba(244, 198, 79, 0.13), transparent 34%),
-    #0b1110;
-}
-
-.sample-intro {
-  max-width: 760px;
-  margin-bottom: 22px;
-}
-
-.sample-intro p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 1.05rem;
-  line-height: 1.58;
-}
-
-.sample-frame-wrap {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(10, 18, 16, 0.82);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
-}
-
-.sample-frame {
-  display: block;
-  width: 100%;
-  height: min(760px, 82svh);
-  min-height: 620px;
-  border: 0;
-  background: #07100f;
-}
-
-.system-grid {
+.cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
-.system-grid article {
+.cards article {
   padding: 22px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.015)),
-    rgba(14, 24, 20, 0.84);
-  box-shadow: none;
 }
 
-.system-grid p,
-.notes p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.58;
-}
-
-.system-icon {
+.cards span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -430,7 +347,13 @@ h3 {
   font-weight: 950;
 }
 
-.notes {
+.cards p,
+.note p {
+  color: var(--muted);
+  line-height: 1.58;
+}
+
+.note {
   display: grid;
   grid-template-columns: minmax(240px, 0.7fr) minmax(280px, 1fr);
   gap: 24px;
@@ -438,44 +361,41 @@ h3 {
   padding: 28px;
 }
 
-@media (max-width: 920px) {
-  #game-root {
-    min-height: 980px;
+@media (max-width: 900px) {
+  #gameRoot {
+    min-height: 100svh;
   }
 
-  .hero-copy {
-    padding-top: 112px;
-  }
-
-  .hud-panel {
+  .hud {
     top: auto;
-    right: 18px;
     left: 18px;
-    bottom: 160px;
-    justify-content: space-between;
+    right: 18px;
+    bottom: 178px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
-  .control-dock {
+  .hud div {
+    min-width: 0;
+  }
+
+  .dock {
     align-items: stretch;
     flex-direction: column;
-    bottom: 18px;
+    bottom: 12px;
   }
 
-  .control-dock p {
+  .dock p {
     max-width: none;
   }
 
-  .system-grid,
-  .notes {
+  .cards,
+  .note {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 640px) {
-  #game-root {
-    min-height: 100svh;
-  }
-
   .topbar {
     align-items: flex-start;
     flex-direction: column;
@@ -486,44 +406,19 @@ h3 {
   nav {
     width: 100%;
     justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
   }
 
-  .hero-copy {
-    width: calc(100vw - 36px);
-    padding-top: 108px;
-    padding-left: 18px;
+  .intro-panel {
+    padding: 108px 18px 0;
   }
 
   h1 {
     font-size: clamp(2.2rem, 11vw, 3.7rem);
   }
 
-  .summary {
-    font-size: 1rem;
-    line-height: 1.48;
-  }
-
-  .build-strip {
-    gap: 8px;
-    margin-top: 14px;
-  }
-
-  .build-strip span {
-    min-height: 34px;
-    padding: 0 10px;
-  }
-
-  .hud-panel {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    bottom: 166px;
+  .hud {
+    bottom: 190px;
     padding: 8px;
-  }
-
-  .hud-panel div {
-    min-width: 0;
   }
 
   .actions,
@@ -531,35 +426,18 @@ h3 {
     flex-wrap: wrap;
   }
 
-  .control-dock {
-    bottom: 10px;
-    gap: 10px;
-    padding: 10px;
-  }
-
-  .actions button,
-  .phase-button {
-    min-height: 38px;
-    padding: 0 12px;
-  }
-
-  .status-banner {
+  .status {
     display: none;
   }
 
   .section,
-  .notes {
+  .note {
     padding-left: 18px;
     padding-right: 18px;
   }
 
-  .notes {
+  .note {
     margin-left: 18px;
     margin-right: 18px;
-  }
-
-  .sample-frame {
-    height: 920px;
-    min-height: 920px;
   }
 }
