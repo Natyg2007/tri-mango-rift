@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tri-Mango Rift | Playable Game Prototype</title>
+    <meta
+      name="description"
+      content="A unique playable browser game prototype with a three-phase arena mechanic, built as a compact game development work sample."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#game-section" aria-label="Tri-Mango Rift home">
+        <span class="brand-mark"></span>
+        <span>Tri-Mango Rift</span>
+      </a>
+      <nav aria-label="Page sections">
+        <a href="#game-section">Play</a>
+        <a href="#systems">Systems</a>
+        <a href="#notes">Notes</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="game-section">
+        <div class="hero-copy">
+          <p class="eyebrow">Playable browser game prototype</p>
+          <h1>Shift between three rifts to survive the orchard maze.</h1>
+          <p class="summary">
+            Collect matching mango cores, dodge phase-linked hazards, and use the
+            three-state rift system to route through a moving arena. Built as a
+            compact work sample for 2D engine scripting, gameplay state, input,
+            collision, UI, and polish.
+          </p>
+          <div class="phase-legend" aria-label="Rift phase legend">
+            <span><i class="sun"></i>Sun</span>
+            <span><i class="tide"></i>Tide</span>
+            <span><i class="ember"></i>Ember</span>
+          </div>
+          <div class="build-strip" aria-label="Prototype highlights">
+            <span>Canvas game loop</span>
+            <span>Phase-based hazards</span>
+            <span>Portable engine logic</span>
+          </div>
+        </div>
+
+        <section class="game-shell" aria-label="Tri-Mango Rift playable game">
+          <div class="game-header">
+            <div>
+              <p class="label">Prototype build</p>
+              <h2>Three-Phase Arena</h2>
+            </div>
+            <div class="hud" aria-live="polite">
+              <span>Phase <strong id="phaseName">Sun</strong></span>
+              <span>Cores <strong id="coreCount">0/9</strong></span>
+              <span>Time <strong id="timer">75</strong></span>
+            </div>
+          </div>
+          <canvas id="game" width="1024" height="640" aria-label="Playable three-phase arcade game"></canvas>
+          <div class="controls">
+            <div class="button-row">
+              <button id="startButton" type="button">Start</button>
+              <button id="resetButton" type="button">Reset</button>
+            </div>
+            <p>
+              Move with WASD or arrows. Shift phase with Space or keys 1, 2, 3.
+              Collect cores that match your phase color.
+            </p>
+          </div>
+        </section>
+      </section>
+
+      <section class="section" id="systems">
+        <div class="section-heading">
+          <p class="eyebrow">What it demonstrates</p>
+          <h2>Game systems in the prototype</h2>
+        </div>
+        <div class="system-grid">
+          <article>
+            <span class="system-icon">01</span>
+            <h3>Three-state gameplay</h3>
+            <p>
+              The active rift changes which collectibles are valid, which hazards
+              are dangerous, the arena tint, and the player trail feedback.
+            </p>
+          </article>
+          <article>
+            <span class="system-icon">02</span>
+            <h3>Entity loop and collision</h3>
+            <p>
+              Moving sentries, orbiting cores, player bounds, circle collisions,
+              score state, timer state, and restart flow run from a clean update loop.
+            </p>
+          </article>
+          <article>
+            <span class="system-icon">03</span>
+            <h3>Portable engine logic</h3>
+            <p>
+              The project maps cleanly to Godot, Defold, Solar2D, Love2D, PyGame,
+              MonoGame, Unity, Unreal, O3DE, Stride, or similar game engines.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section notes" id="notes">
+        <div>
+          <p class="eyebrow">Submission note</p>
+          <h2>Use this as a work sample link</h2>
+        </div>
+        <p>
+          This is a standalone HTML/CSS/JavaScript game prototype with no backend
+          dependency. It is meant to show practical game-development ability
+          through a playable mechanic, readable systems, and a polished first
+          impression instead of a static screenshot or resume page.
+        </p>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
