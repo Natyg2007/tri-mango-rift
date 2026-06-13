@@ -37,6 +37,8 @@ let floor;
 let rimLight;
 let riftGroup;
 let riftLights = [];
+let wormholeGroup;
+let wormholeLight;
 let cores = [];
 let hazards = [];
 let teleporters = [];
@@ -87,6 +89,7 @@ function init() {
 
   buildArena();
   buildRift();
+  buildWormhole();
   buildParticles();
   buildPlayer();
   createEntities();
@@ -239,6 +242,79 @@ function buildRift() {
     scene.add(light);
     riftLights.push(light);
   });
+}
+
+function buildWormhole() {
+  wormholeGroup = new THREE.Group();
+  wormholeGroup.visible = false;
+  scene.add(wormholeGroup);
+
+  const hole = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.28, 1.42, 0.08, 64),
+    new THREE.MeshStandardMaterial({
+      color: 0x020504,
+      roughness: 0.28,
+      metalness: 0.15,
+      emissive: 0x000000,
+      emissiveIntensity: 1,
+    }),
+  );
+  hole.position.y = 0.02;
+  wormholeGroup.add(hole);
+
+  const ringSizes = [1.55, 2.05, 2.62];
+  ringSizes.forEach((radius, index) => {
+    const phase = phases[index];
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(radius, 0.055, 12, 96),
+      new THREE.MeshStandardMaterial({
+        color: phase.color,
+        emissive: phase.color,
+        emissiveIntensity: 1.2,
+        roughness: 0.16,
+        metalness: 0.4,
+        transparent: true,
+        opacity: 0.82,
+      }),
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.08 + index * 0.08;
+    wormholeGroup.add(ring);
+  });
+
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.42, 2.25, 7.5, 48, 1, true),
+    new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: phases[0].color,
+      emissiveIntensity: 0.6,
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false,
+    }),
+  );
+  beam.position.y = 3.4;
+  wormholeGroup.add(beam);
+
+  const shardMaterial = new THREE.MeshStandardMaterial({
+    color: 0xfff8e9,
+    roughness: 0.34,
+    metalness: 0.2,
+    emissive: phases[0].color,
+    emissiveIntensity: 0.25,
+  });
+  for (let i = 0; i < 14; i += 1) {
+    const shard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.62), shardMaterial.clone());
+    const angle = (i / 14) * Math.PI * 2;
+    const radius = 2.3 + (i % 4) * 0.32;
+    shard.position.set(Math.cos(angle) * radius, 0.22 + (i % 3) * 0.16, Math.sin(angle) * radius);
+    shard.rotation.set(Math.random() * 2, angle, Math.random() * 2);
+    shard.userData = { angle, radius, speed: 1.2 + (i % 5) * 0.22 };
+    wormholeGroup.add(shard);
+  }
+
+  wormholeLight = new THREE.PointLight(phases[0].color, 0, 12);
+  scene.add(wormholeLight);
 }
 
 function buildPlayer() {
@@ -466,6 +542,9 @@ function resetGame() {
   running = false;
   won = false;
   player.position.set(0, 0.48, 0);
+  player.scale.setScalar(1);
+  wormholeGroup.visible = false;
+  wormholeLight.intensity = 0;
   updatePhaseVisuals();
   updateHud();
   showStatus(startedOnce ? "Reset ready" : "Press Start");
@@ -509,6 +588,12 @@ function updatePhaseVisuals() {
   playerLight.color.setHex(active.color);
   rimLight.color.setHex(active.color);
   riftGroup.children[3].material.emissive.setHex(active.color);
+  wormholeLight.color.setHex(active.color);
+  wormholeGroup.children.forEach((child) => {
+    if (child.isMesh && child.material?.emissive) {
+      child.material.emissive.setHex(active.color);
+    }
+  });
 
   for (const core of cores) {
     const isActive = core.userData.phase === phaseIndex;
@@ -633,7 +718,10 @@ function checkCollisions() {
     return false;
   });
 
-  if (collected === levelGoal) completeArena();
+  if (collected === levelGoal) {
+    completeArena();
+    return;
+  }
 
   for (const teleporter of teleporters) {
     const distance = Math.hypot(playerPos.x - teleporter.position.x, playerPos.z - teleporter.position.z);
@@ -709,30 +797,29 @@ function updateGame(dt, elapsed) {
 
 function completeArena() {
   running = false;
-  player.position.set(0, 0.48, 0);
   score += 30 + levelIndex * 15;
 
   if (levelIndex >= arenaLevels.length - 1) {
     won = true;
+    player.position.set(0, 0.48, 0);
     showStatus("Rift stabilized");
     updateHud();
     return;
   }
 
   const nextLevel = levelIndex + 1;
-  showStatus(`Dropping to ${arenaLevels[nextLevel].name}`);
-
-  window.setTimeout(() => {
-    levelIndex = nextLevel;
-    phaseIndex = arenaLevels[levelIndex].phase;
-    collected = 0;
-    timeLeft += arenaLevels[levelIndex].timeBonus;
-    createEntities();
-    updatePhaseVisuals();
-    updateHud();
-    player.position.set(0, 7.5, 0);
-    dropTransition = { elapsed: 0, duration: 1.05 };
-  }, 620);
+  showStatus("Wormhole opening");
+  wormholeGroup.visible = true;
+  wormholeGroup.position.set(0, 0.02, 0);
+  wormholeGroup.scale.setScalar(0.35);
+  wormholeLight.position.set(0, 1.2, 0);
+  dropTransition = {
+    stage: "suck",
+    elapsed: 0,
+    duration: 1.15,
+    nextLevel,
+    start: player.position.clone(),
+  };
 }
 
 function updateCamera(dt) {
@@ -759,9 +846,28 @@ function loop() {
   updateGame(dt, elapsed);
   updateCamera(dt);
 
-  player.scale.setScalar(1 + Math.sin(elapsed * 5) * 0.025);
+  animateWormhole(dt, elapsed);
+  if (!dropTransition) player.scale.setScalar(1 + Math.sin(elapsed * 5) * 0.025);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
+}
+
+function animateWormhole(dt, elapsed) {
+  if (!wormholeGroup.visible) return;
+
+  wormholeGroup.children.forEach((child, index) => {
+    if (!child.isMesh) return;
+    if (index >= 1 && index <= 3) {
+      child.rotation.z += dt * (index % 2 === 0 ? -3.4 : 4.2);
+      child.material.opacity = 0.58 + Math.sin(elapsed * 5 + index) * 0.18;
+    }
+    if (child.userData?.radius) {
+      child.userData.angle += dt * child.userData.speed;
+      child.position.x = Math.cos(child.userData.angle) * child.userData.radius;
+      child.position.z = Math.sin(child.userData.angle) * child.userData.radius;
+      child.rotation.y += dt * 4.5;
+    }
+  });
 }
 
 function updateDropTransition(dt) {
@@ -769,14 +875,58 @@ function updateDropTransition(dt) {
 
   dropTransition.elapsed += dt;
   const progress = Math.min(dropTransition.elapsed / dropTransition.duration, 1);
-  const eased = 1 - Math.pow(1 - progress, 3);
-  player.position.y = THREE.MathUtils.lerp(7.5, 0.48, eased);
+  const eased = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+  if (dropTransition.stage === "suck") {
+    player.position.x = THREE.MathUtils.lerp(dropTransition.start.x, 0, eased);
+    player.position.z = THREE.MathUtils.lerp(dropTransition.start.z, 0, eased);
+    player.position.y = THREE.MathUtils.lerp(dropTransition.start.y, -2.3, eased);
+    player.scale.setScalar(THREE.MathUtils.lerp(1, 0.18, eased));
+    wormholeGroup.position.set(0, 0.02, 0);
+    wormholeGroup.scale.setScalar(THREE.MathUtils.lerp(0.35, 1.25, Math.min(progress * 1.4, 1)));
+    wormholeLight.position.set(0, 1.2, 0);
+    wormholeLight.intensity = THREE.MathUtils.lerp(1.2, 14, Math.sin(progress * Math.PI));
+  } else {
+    const wobble = Math.sin(progress * Math.PI * 5) * (1 - progress) * 0.36;
+    player.position.x = wobble;
+    player.position.z = -wobble * 0.6;
+    player.position.y = THREE.MathUtils.lerp(8.8, 0.48, eased);
+    player.scale.setScalar(THREE.MathUtils.lerp(0.55, 1, eased));
+    wormholeGroup.position.set(0, THREE.MathUtils.lerp(6.9, 0.02, Math.min(progress * 1.2, 1)), 0);
+    wormholeGroup.scale.setScalar(THREE.MathUtils.lerp(1.45, 0.55, progress));
+    wormholeLight.position.set(0, wormholeGroup.position.y + 0.8, 0);
+    wormholeLight.intensity = THREE.MathUtils.lerp(12, 0, progress);
+  }
+
   playerRing.position.copy(player.position);
   playerRing.position.y = player.position.y + 0.04;
 
   if (progress >= 1) {
+    if (dropTransition.stage === "suck") {
+      levelIndex = dropTransition.nextLevel;
+      phaseIndex = arenaLevels[levelIndex].phase;
+      collected = 0;
+      timeLeft += arenaLevels[levelIndex].timeBonus;
+      createEntities();
+      updatePhaseVisuals();
+      updateHud();
+      showStatus(`Dropping into ${arenaLevels[levelIndex].name}`);
+      dropTransition = {
+        stage: "drop",
+        elapsed: 0,
+        duration: 1.25,
+      };
+      player.position.set(0, 8.8, 0);
+      player.scale.setScalar(0.55);
+      wormholeGroup.visible = true;
+      return;
+    }
+
     dropTransition = null;
     player.position.set(0, 0.48, 0);
+    player.scale.setScalar(1);
+    wormholeGroup.visible = false;
+    wormholeLight.intensity = 0;
     running = true;
     hideStatus();
   }
