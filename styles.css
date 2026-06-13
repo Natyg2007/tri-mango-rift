@@ -134,6 +134,14 @@ nav a:hover {
 .hero-copy {
   width: min(560px, calc(100vw - 36px));
   padding: 16vh 0 0 5vw;
+  transition: opacity 420ms ease, transform 420ms ease, filter 420ms ease;
+}
+
+#game-root.is-playing .hero-copy {
+  opacity: 0;
+  transform: translateY(-18px);
+  filter: blur(8px);
+  pointer-events: none;
 }
 
 .eyebrow {
@@ -465,7 +473,7 @@ h3 {
 
   .hud-panel {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     bottom: 166px;
     padding: 8px;
   }

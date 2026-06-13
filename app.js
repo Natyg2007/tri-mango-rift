@@ -4,6 +4,7 @@ const mount = document.querySelector("#sceneMount");
 const phaseNameNode = document.querySelector("#phaseName");
 const coreCountNode = document.querySelector("#coreCount");
 const scoreNode = document.querySelector("#score");
+const arenaNameNode = document.querySelector("#arenaName");
 const timerNode = document.querySelector("#timer");
 const statusBanner = document.querySelector("#statusBanner");
 const startButton = document.querySelector("#startButton");
@@ -14,6 +15,12 @@ const phases = [
   { name: "Sun", color: 0xf4c64f, dark: 0x4a3515 },
   { name: "Tide", color: 0x55c2e4, dark: 0x153b4a },
   { name: "Ember", color: 0xf05c3f, dark: 0x4b1d16 },
+];
+
+const arenaLevels = [
+  { name: "Easy", phase: 0, coreCount: 3, hazardSpeed: 0.9, hazardRange: 0.85, timeBonus: 18 },
+  { name: "Medium", phase: 1, coreCount: 4, hazardSpeed: 1.18, hazardRange: 1, timeBonus: 15 },
+  { name: "Hard", phase: 2, coreCount: 5, hazardSpeed: 1.42, hazardRange: 1.16, timeBonus: 12 },
 ];
 
 const arena = { halfX: 14, halfZ: 9 };
@@ -36,10 +43,13 @@ let teleporters = [];
 let particles;
 let phaseIndex = 0;
 let collected = 0;
+let levelIndex = 0;
+let levelGoal = 3;
 let score = 0;
 let timeLeft = 90;
 let penaltyCooldown = 0;
 let teleportCooldown = 0;
+let dropTransition = null;
 let running = false;
 let won = false;
 let startedOnce = false;
@@ -292,6 +302,8 @@ function buildParticles() {
 
 function createEntities() {
   clearEntities();
+  const level = arenaLevels[levelIndex];
+  levelGoal = level.coreCount;
 
   const corePositions = [
     [-10.5, -5.5, 0],
@@ -305,7 +317,8 @@ function createEntities() {
     [8.8, 5.5, 2],
   ];
 
-  cores = corePositions.map(([x, z, phase], index) => {
+  cores = corePositions.slice(0, level.coreCount).map(([x, z], index) => {
+    const phase = level.phase;
     const group = new THREE.Group();
     group.position.set(x, 0.7, z);
     group.userData = { baseY: 0.72, phase, index, radius: 0.65, angle: index * 0.8 };
@@ -344,10 +357,12 @@ function createEntities() {
     { x: -7.2, z: -1.8, sx: 1.15, sz: 5.4, phase: 0, axis: "z", range: 3.4, speed: 1.15 },
     { x: 0.8, z: 2.5, sx: 6.6, sz: 0.95, phase: 2, axis: "x", range: 4.4, speed: 1.0 },
     { x: 7.8, z: -1.2, sx: 1.1, sz: 6.2, phase: 1, axis: "z", range: 4.2, speed: 1.35 },
-    { x: -1.8, z: -3.7, sx: 4.8, sz: 0.9, phase: 0, axis: "x", range: 3.1, speed: 1.45 },
+    { x: -1.8, z: -3.7, sx: 4.8, sz: 0.9, phase: level.phase, axis: "x", range: 3.1, speed: 1.45 },
   ];
 
   hazards = hazardData.map((data, index) => {
+    const speed = data.speed * level.hazardSpeed;
+    const range = data.range * level.hazardRange;
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(data.sx, 1.15, data.sz),
       new THREE.MeshStandardMaterial({
@@ -363,7 +378,7 @@ function createEntities() {
     mesh.position.set(data.x, 0.55, data.z);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    mesh.userData = { ...data, baseX: data.x, baseZ: data.z, index, radius: Math.max(data.sx, data.sz) / 2 };
+    mesh.userData = { ...data, speed, range, baseX: data.x, baseZ: data.z, index, radius: Math.max(data.sx, data.sz) / 2 };
     scene.add(mesh);
     return mesh;
   });
@@ -438,13 +453,16 @@ function clearEntities() {
 }
 
 function resetGame() {
+  document.querySelector("#game-root").classList.remove("is-playing");
+  levelIndex = 0;
+  phaseIndex = arenaLevels[levelIndex].phase;
   createEntities();
-  phaseIndex = 0;
   collected = 0;
   score = 0;
   timeLeft = 90;
   penaltyCooldown = 0;
   teleportCooldown = 0;
+  dropTransition = null;
   running = false;
   won = false;
   player.position.set(0, 0.48, 0);
@@ -457,6 +475,7 @@ function startGame() {
   if (timeLeft <= 0 || won || collected === 9) resetGame();
   startedOnce = true;
   running = true;
+  document.querySelector("#game-root").classList.add("is-playing");
   hideStatus();
   clock.getDelta();
 }
@@ -464,8 +483,9 @@ function startGame() {
 function updateHud() {
   phaseNameNode.textContent = phases[phaseIndex].name;
   phaseNameNode.style.color = `#${phases[phaseIndex].color.toString(16).padStart(6, "0")}`;
-  coreCountNode.textContent = `${collected}/9`;
+  coreCountNode.textContent = `${collected}/${levelGoal}`;
   scoreNode.textContent = String(score);
+  arenaNameNode.textContent = arenaLevels[levelIndex].name;
   timerNode.textContent = String(Math.max(0, Math.ceil(timeLeft)));
 
   for (const button of phaseButtons) {
@@ -599,7 +619,6 @@ function updateEntities(dt, elapsed) {
 
 function checkCollisions() {
   const playerPos = player.position;
-  let collectedCoreThisFrame = false;
 
   cores = cores.filter((core) => {
     if (core.userData.phase !== phaseIndex) return true;
@@ -609,20 +628,12 @@ function checkCollisions() {
     collected += 1;
     score += 15;
     timeLeft += 2.5;
-    collectedCoreThisFrame = true;
     scene.remove(core);
     updateHud();
     return false;
   });
 
-  if (collectedCoreThisFrame && collected < 9) {
-    player.position.set(0, 0.48, 0);
-    switchPhase(phaseIndex + 1);
-    showStatus("Core banked");
-    window.setTimeout(() => {
-      if (running) hideStatus();
-    }, 520);
-  }
+  if (collected === levelGoal) completeArena();
 
   for (const teleporter of teleporters) {
     const distance = Math.hypot(playerPos.x - teleporter.position.x, playerPos.z - teleporter.position.z);
@@ -693,15 +704,35 @@ function updateGame(dt, elapsed) {
   updateEntities(dt, elapsed);
   checkCollisions();
 
-  if (collected === 9) {
+  updateHud();
+}
+
+function completeArena() {
+  running = false;
+  player.position.set(0, 0.48, 0);
+  score += 30 + levelIndex * 15;
+
+  if (levelIndex >= arenaLevels.length - 1) {
     won = true;
-    running = false;
-    player.position.set(0, 0.48, 0);
-    switchPhase(phaseIndex + 1);
     showStatus("Rift stabilized");
+    updateHud();
+    return;
   }
 
-  updateHud();
+  const nextLevel = levelIndex + 1;
+  showStatus(`Dropping to ${arenaLevels[nextLevel].name}`);
+
+  window.setTimeout(() => {
+    levelIndex = nextLevel;
+    phaseIndex = arenaLevels[levelIndex].phase;
+    collected = 0;
+    timeLeft += arenaLevels[levelIndex].timeBonus;
+    createEntities();
+    updatePhaseVisuals();
+    updateHud();
+    player.position.set(0, 7.5, 0);
+    dropTransition = { elapsed: 0, duration: 1.05 };
+  }, 620);
 }
 
 function updateCamera(dt) {
@@ -724,12 +755,31 @@ function loop() {
   const elapsed = clock.elapsedTime;
 
   if (!running) updateEntities(dt, elapsed);
+  updateDropTransition(dt);
   updateGame(dt, elapsed);
   updateCamera(dt);
 
   player.scale.setScalar(1 + Math.sin(elapsed * 5) * 0.025);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
+}
+
+function updateDropTransition(dt) {
+  if (!dropTransition) return;
+
+  dropTransition.elapsed += dt;
+  const progress = Math.min(dropTransition.elapsed / dropTransition.duration, 1);
+  const eased = 1 - Math.pow(1 - progress, 3);
+  player.position.y = THREE.MathUtils.lerp(7.5, 0.48, eased);
+  playerRing.position.copy(player.position);
+  playerRing.position.y = player.position.y + 0.04;
+
+  if (progress >= 1) {
+    dropTransition = null;
+    player.position.set(0, 0.48, 0);
+    running = true;
+    hideStatus();
+  }
 }
 
 function resize() {
