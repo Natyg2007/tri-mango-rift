@@ -1,376 +1,440 @@
-const canvas = document.querySelector("#game");
-const ctx = canvas.getContext("2d");
+import * as THREE from "https://unpkg.com/three@0.165.0/build/three.module.js";
+
+const mount = document.querySelector("#sceneMount");
 const phaseNameNode = document.querySelector("#phaseName");
 const coreCountNode = document.querySelector("#coreCount");
 const timerNode = document.querySelector("#timer");
+const statusBanner = document.querySelector("#statusBanner");
 const startButton = document.querySelector("#startButton");
 const resetButton = document.querySelector("#resetButton");
+const phaseButtons = [...document.querySelectorAll(".phase-button")];
 
 const phases = [
-  { name: "Sun", color: "#f2c14e", dark: "#58421d" },
-  { name: "Tide", color: "#53b7d7", dark: "#173e4d" },
-  { name: "Ember", color: "#df5b3f", dark: "#54231b" },
+  { name: "Sun", color: 0xf4c64f, dark: 0x4a3515 },
+  { name: "Tide", color: 0x55c2e4, dark: 0x153b4a },
+  { name: "Ember", color: 0xf05c3f, dark: 0x4b1d16 },
 ];
 
+const arena = { halfX: 14, halfZ: 9 };
 const keys = new Set();
-let player;
-let cores;
-let sentries;
-let ripples;
-let sparks;
-let trail;
-let phaseIndex;
-let collected;
-let timeLeft;
-let running;
-let won;
-let lastTick;
+const clock = new THREE.Clock();
 
-function createCores() {
-  return [
-    { x: 168, y: 142, phase: 0, angle: 0.2 },
-    { x: 512, y: 122, phase: 1, angle: 1.8 },
-    { x: 848, y: 160, phase: 2, angle: 3.2 },
-    { x: 242, y: 330, phase: 1, angle: 5.1 },
-    { x: 514, y: 318, phase: 2, angle: 2.6 },
-    { x: 780, y: 342, phase: 0, angle: 4.5 },
-    { x: 150, y: 518, phase: 2, angle: 0.9 },
-    { x: 506, y: 512, phase: 0, angle: 3.7 },
-    { x: 870, y: 498, phase: 1, angle: 5.6 },
+let scene;
+let camera;
+let renderer;
+let player;
+let playerRing;
+let playerLight;
+let floor;
+let rimLight;
+let riftGroup;
+let riftLights = [];
+let cores = [];
+let hazards = [];
+let particles;
+let phaseIndex = 0;
+let collected = 0;
+let timeLeft = 90;
+let running = false;
+let won = false;
+let startedOnce = false;
+
+init();
+resetGame();
+requestAnimationFrame(loop);
+
+function init() {
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x07100f, 0.035);
+
+  camera = new THREE.PerspectiveCamera(48, 1, 0.1, 120);
+  camera.position.set(0, 16, 18);
+  camera.lookAt(0, 0, 0);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x07100f, 1);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  mount.appendChild(renderer.domElement);
+
+  scene.add(new THREE.HemisphereLight(0xfff3d0, 0x19342e, 1.7));
+
+  const sun = new THREE.DirectionalLight(0xfff1c6, 2.8);
+  sun.position.set(-8, 14, 8);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  scene.add(sun);
+
+  rimLight = new THREE.PointLight(phases[0].color, 16, 42);
+  rimLight.position.set(0, 6, 0);
+  scene.add(rimLight);
+
+  buildArena();
+  buildRift();
+  buildParticles();
+  buildPlayer();
+  createEntities();
+  resize();
+
+  window.addEventListener("resize", resize);
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+  startButton.addEventListener("click", startGame);
+  resetButton.addEventListener("click", resetGame);
+
+  for (const button of phaseButtons) {
+    button.addEventListener("click", () => {
+      if (running) switchPhase(Number(button.dataset.phase));
+    });
+  }
+}
+
+function buildArena() {
+  const floorMaterial = new THREE.MeshStandardMaterial({
+    color: phases[0].dark,
+    roughness: 0.62,
+    metalness: 0.1,
+    emissive: phases[0].dark,
+    emissiveIntensity: 0.14,
+  });
+  floor = new THREE.Mesh(new THREE.BoxGeometry(31, 0.45, 21), floorMaterial);
+  floor.position.y = -0.26;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const ringMaterial = new THREE.MeshStandardMaterial({
+    color: 0xfff8e9,
+    roughness: 0.45,
+    metalness: 0.25,
+    emissive: 0x9f7d35,
+    emissiveIntensity: 0.18,
+  });
+
+  const wallPieces = [
+    { x: 0, z: -arena.halfZ - 0.35, sx: 31.5, sz: 0.35 },
+    { x: 0, z: arena.halfZ + 0.35, sx: 31.5, sz: 0.35 },
+    { x: -arena.halfX - 0.35, z: 0, sx: 0.35, sz: 21 },
+    { x: arena.halfX + 0.35, z: 0, sx: 0.35, sz: 21 },
   ];
+
+  for (const piece of wallPieces) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(piece.sx, 0.75, piece.sz), ringMaterial);
+    mesh.position.set(piece.x, 0.15, piece.z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+  }
+
+  const grid = new THREE.GridHelper(30, 30, 0xfff8e9, 0xfff8e9);
+  grid.position.y = 0.01;
+  grid.material.transparent = true;
+  grid.material.opacity = 0.12;
+  scene.add(grid);
+
+  const shardMaterial = new THREE.MeshStandardMaterial({
+    color: 0x21443a,
+    roughness: 0.5,
+    metalness: 0.12,
+    emissive: 0x15342d,
+    emissiveIntensity: 0.35,
+  });
+
+  const shardPositions = [
+    [-13.2, 0.55, -7.5, 0.7, 1.8, 0.7],
+    [12.8, 0.55, -6.8, 0.9, 2.2, 0.9],
+    [-12.7, 0.55, 7.2, 1.2, 1.4, 1.2],
+    [13.1, 0.55, 7.5, 0.8, 1.7, 0.8],
+  ];
+
+  for (const [x, y, z, sx, sy, sz] of shardPositions) {
+    const shard = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), shardMaterial.clone());
+    shard.position.set(x, y, z);
+    shard.scale.set(sx, sy, sz);
+    shard.rotation.set(Math.random(), Math.random(), Math.random());
+    shard.castShadow = true;
+    shard.receiveShadow = true;
+    scene.add(shard);
+  }
+}
+
+function buildRift() {
+  riftGroup = new THREE.Group();
+  riftGroup.position.set(0, 1.05, -0.35);
+  scene.add(riftGroup);
+
+  const ringGeometries = [
+    new THREE.TorusGeometry(3.35, 0.045, 12, 128),
+    new THREE.TorusGeometry(2.35, 0.035, 12, 128),
+    new THREE.TorusGeometry(1.35, 0.028, 12, 96),
+  ];
+
+  ringGeometries.forEach((geometry, index) => {
+    const material = new THREE.MeshStandardMaterial({
+      color: phases[index].color,
+      emissive: phases[index].color,
+      emissiveIntensity: 1.1,
+      roughness: 0.2,
+      metalness: 0.35,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const ring = new THREE.Mesh(geometry, material);
+    ring.rotation.x = Math.PI / 2.2;
+    ring.rotation.z = index * 0.5;
+    riftGroup.add(ring);
+  });
+
+  const core = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.72, 2),
+    new THREE.MeshStandardMaterial({
+      color: 0xfff8e9,
+      roughness: 0.14,
+      metalness: 0.22,
+      emissive: phases[0].color,
+      emissiveIntensity: 0.65,
+    }),
+  );
+  core.castShadow = true;
+  riftGroup.add(core);
+
+  const beaconPositions = [
+    [-4.4, 0.1, -3.4],
+    [4.4, 0.1, -3.4],
+    [0, 0.1, 4.2],
+  ];
+
+  beaconPositions.forEach(([x, y, z], index) => {
+    const beacon = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.16, 1.5, 20),
+      new THREE.MeshStandardMaterial({
+        color: phases[index].color,
+        emissive: phases[index].color,
+        emissiveIntensity: 0.75,
+        transparent: true,
+        opacity: 0.72,
+      }),
+    );
+    beacon.position.set(x, y + 0.75, z);
+    beacon.castShadow = true;
+    riftGroup.add(beacon);
+
+    const light = new THREE.PointLight(phases[index].color, 2.8, 7);
+    light.position.set(x, 1.4, z);
+    scene.add(light);
+    riftLights.push(light);
+  });
+}
+
+function buildPlayer() {
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xfff8e9,
+    roughness: 0.28,
+    metalness: 0.2,
+    emissive: phases[0].color,
+    emissiveIntensity: 0.18,
+  });
+  player = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 24), material);
+  player.castShadow = true;
+  scene.add(player);
+
+  playerRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.78, 0.035, 12, 56),
+    new THREE.MeshStandardMaterial({
+      color: phases[0].color,
+      emissive: phases[0].color,
+      emissiveIntensity: 0.9,
+      transparent: true,
+      opacity: 0.72,
+    }),
+  );
+  playerRing.rotation.x = Math.PI / 2;
+  scene.add(playerRing);
+
+  playerLight = new THREE.PointLight(phases[0].color, 8, 8);
+  scene.add(playerLight);
+}
+
+function buildParticles() {
+  const count = 850;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const color = new THREE.Color();
+
+  for (let i = 0; i < count; i += 1) {
+    positions[i * 3] = THREE.MathUtils.randFloatSpread(42);
+    positions[i * 3 + 1] = THREE.MathUtils.randFloat(0.2, 9);
+    positions[i * 3 + 2] = THREE.MathUtils.randFloatSpread(30);
+    color.setHex(phases[i % 3].color);
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const material = new THREE.PointsMaterial({
+    size: 0.06,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+  });
+  particles = new THREE.Points(geometry, material);
+  scene.add(particles);
+}
+
+function createEntities() {
+  clearEntities();
+
+  const corePositions = [
+    [-10.5, -5.5, 0],
+    [-4.8, -7.1, 1],
+    [2.2, -6.2, 2],
+    [9.7, -4.7, 0],
+    [-11.2, 0.2, 2],
+    [-2.4, 0.6, 0],
+    [6.2, 0.3, 1],
+    [-7.2, 5.7, 1],
+    [8.8, 5.5, 2],
+  ];
+
+  cores = corePositions.map(([x, z, phase], index) => {
+    const group = new THREE.Group();
+    group.position.set(x, 0.7, z);
+    group.userData = { baseY: 0.72, phase, index, radius: 0.65, angle: index * 0.8 };
+
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(0.48, 32, 18).scale(0.82, 1.12, 0.72),
+      new THREE.MeshStandardMaterial({
+        color: phases[phase].color,
+        roughness: 0.36,
+        metalness: 0.14,
+        emissive: phases[phase].color,
+        emissiveIntensity: 0.48,
+      }),
+    );
+    body.castShadow = true;
+    group.add(body);
+
+    const leaf = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 12, 8).scale(1.5, 0.45, 0.65),
+      new THREE.MeshStandardMaterial({
+        color: 0x52b975,
+        roughness: 0.42,
+        emissive: 0x1b6337,
+        emissiveIntensity: 0.4,
+      }),
+    );
+    leaf.position.set(-0.18, 0.5, 0.03);
+    leaf.rotation.z = 0.6;
+    group.add(leaf);
+
+    scene.add(group);
+    return group;
+  });
+
+  const hazardData = [
+    { x: -7.2, z: -1.8, sx: 1.15, sz: 5.4, phase: 0, axis: "z", range: 3.4, speed: 1.15 },
+    { x: 0.8, z: 2.5, sx: 6.6, sz: 0.95, phase: 2, axis: "x", range: 4.4, speed: 1.0 },
+    { x: 7.8, z: -1.2, sx: 1.1, sz: 6.2, phase: 1, axis: "z", range: 4.2, speed: 1.35 },
+    { x: -1.8, z: -3.7, sx: 4.8, sz: 0.9, phase: 0, axis: "x", range: 3.1, speed: 1.45 },
+  ];
+
+  hazards = hazardData.map((data, index) => {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(data.sx, 1.15, data.sz),
+      new THREE.MeshStandardMaterial({
+        color: phases[data.phase].color,
+        transparent: true,
+        opacity: 0.72,
+        roughness: 0.28,
+        metalness: 0.12,
+        emissive: phases[data.phase].color,
+        emissiveIntensity: 0.35,
+      }),
+    );
+    mesh.position.set(data.x, 0.55, data.z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData = { ...data, baseX: data.x, baseZ: data.z, index, radius: Math.max(data.sx, data.sz) / 2 };
+    scene.add(mesh);
+    return mesh;
+  });
+}
+
+function clearEntities() {
+  for (const core of cores) scene.remove(core);
+  for (const hazard of hazards) scene.remove(hazard);
+  cores = [];
+  hazards = [];
 }
 
 function resetGame() {
-  player = { x: 512, y: 320, r: 17, speed: 270, invulnerable: 0 };
-  cores = createCores();
-  sentries = [
-    { x: 315, y: 210, w: 58, h: 170, phase: 0, vx: 0, vy: 86 },
-    { x: 644, y: 250, w: 58, h: 170, phase: 1, vx: 0, vy: -92 },
-    { x: 360, y: 440, w: 295, h: 34, phase: 2, vx: 92, vy: 0 },
-    { x: 715, y: 95, w: 36, h: 255, phase: 0, vx: -68, vy: 0 },
-  ];
-  ripples = [];
-  sparks = Array.from({ length: 80 }, () => ({
-    x: Math.random() * canvas.width,
-    y: 70 + Math.random() * (canvas.height - 100),
-    speed: 8 + Math.random() * 22,
-    size: 1 + Math.random() * 2.2,
-    phase: Math.floor(Math.random() * 3),
-  }));
-  trail = [];
+  createEntities();
   phaseIndex = 0;
   collected = 0;
-  timeLeft = 75;
+  timeLeft = 90;
   running = false;
   won = false;
-  lastTick = performance.now();
+  player.position.set(0, 0.48, 0);
+  updatePhaseVisuals();
   updateHud();
-  draw();
+  showStatus(startedOnce ? "Reset ready" : "Press Start");
+}
+
+function startGame() {
+  if (timeLeft <= 0 || won || collected === 9) resetGame();
+  startedOnce = true;
+  running = true;
+  hideStatus();
+  clock.getDelta();
 }
 
 function updateHud() {
   phaseNameNode.textContent = phases[phaseIndex].name;
-  phaseNameNode.style.color = phases[phaseIndex].color;
+  phaseNameNode.style.color = `#${phases[phaseIndex].color.toString(16).padStart(6, "0")}`;
   coreCountNode.textContent = `${collected}/9`;
   timerNode.textContent = String(Math.max(0, Math.ceil(timeLeft)));
-}
 
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
+  for (const button of phaseButtons) {
+    button.classList.toggle("active", Number(button.dataset.phase) === phaseIndex);
+  }
 }
 
 function switchPhase(nextPhase) {
   phaseIndex = ((nextPhase % phases.length) + phases.length) % phases.length;
-  ripples.push({ x: player.x, y: player.y, age: 0, color: phases[phaseIndex].color });
+  updatePhaseVisuals();
   updateHud();
 }
 
-function circleRectOverlap(circle, rect) {
-  const closestX = clamp(circle.x, rect.x, rect.x + rect.w);
-  const closestY = clamp(circle.y, rect.y, rect.y + rect.h);
-  const dx = circle.x - closestX;
-  const dy = circle.y - closestY;
-  return dx * dx + dy * dy < circle.r * circle.r;
-}
-
-function moveSentries(dt) {
-  for (const sentry of sentries) {
-    const speedBoost = sentry.phase === phaseIndex ? 1.08 : 0.72;
-    sentry.x += sentry.vx * dt * speedBoost;
-    sentry.y += sentry.vy * dt * speedBoost;
-
-    if (sentry.y < 86 || sentry.y + sentry.h > canvas.height - 60) {
-      sentry.vy *= -1;
-      sentry.y = clamp(sentry.y, 86, canvas.height - 60 - sentry.h);
-    }
-
-    if (sentry.x < 70 || sentry.x + sentry.w > canvas.width - 70) {
-      sentry.vx *= -1;
-      sentry.x = clamp(sentry.x, 70, canvas.width - 70 - sentry.w);
-    }
-  }
-}
-
-function updatePlayer(dt) {
-  let dx = 0;
-  let dy = 0;
-  if (keys.has("arrowleft") || keys.has("a")) dx -= 1;
-  if (keys.has("arrowright") || keys.has("d")) dx += 1;
-  if (keys.has("arrowup") || keys.has("w")) dy -= 1;
-  if (keys.has("arrowdown") || keys.has("s")) dy += 1;
-
-  if (dx !== 0 || dy !== 0) {
-    const length = Math.hypot(dx, dy);
-    const phaseSpeed = phaseIndex === 1 ? 1.14 : phaseIndex === 2 ? 0.95 : 1;
-    player.x += (dx / length) * player.speed * phaseSpeed * dt;
-    player.y += (dy / length) * player.speed * phaseSpeed * dt;
-  }
-
-  player.x = clamp(player.x, player.r + 28, canvas.width - player.r - 28);
-  player.y = clamp(player.y, player.r + 72, canvas.height - player.r - 28);
-}
-
-function update(dt) {
-  if (!running) return;
-
-  timeLeft -= dt;
-  if (timeLeft <= 0) {
-    timeLeft = 0;
-    running = false;
-  }
-
-  player.invulnerable = Math.max(0, player.invulnerable - dt);
-  updatePlayer(dt);
-  moveSentries(dt);
-  trail.push({ x: player.x, y: player.y, age: 0, color: phases[phaseIndex].color });
-  if (trail.length > 38) trail.shift();
+function updatePhaseVisuals() {
+  const active = phases[phaseIndex];
+  floor.material.color.setHex(active.dark);
+  floor.material.emissive.setHex(active.dark);
+  player.material.emissive.setHex(active.color);
+  playerRing.material.color.setHex(active.color);
+  playerRing.material.emissive.setHex(active.color);
+  playerLight.color.setHex(active.color);
+  rimLight.color.setHex(active.color);
+  riftGroup.children[3].material.emissive.setHex(active.color);
 
   for (const core of cores) {
-    core.angle += dt * (1.6 + core.phase * 0.18);
+    const isActive = core.userData.phase === phaseIndex;
+    core.children[0].material.emissiveIntensity = isActive ? 0.82 : 0.18;
+    core.children[0].material.opacity = isActive ? 1 : 0.4;
+    core.children[0].material.transparent = !isActive;
   }
 
-  for (const sentry of sentries) {
-    if (sentry.phase === phaseIndex && player.invulnerable <= 0 && circleRectOverlap(player, sentry)) {
-      player.x = 512;
-      player.y = 320;
-      player.invulnerable = 1.2;
-      timeLeft = Math.max(0, timeLeft - 5);
-      ripples.push({ x: player.x, y: player.y, age: 0, color: "#ffffff" });
-      break;
-    }
-  }
-
-  cores = cores.filter((core) => {
-    const bobX = Math.cos(core.angle) * 8;
-    const bobY = Math.sin(core.angle * 1.3) * 8;
-    const isCollected =
-      core.phase === phaseIndex &&
-      Math.hypot(player.x - (core.x + bobX), player.y - (core.y + bobY)) < player.r + 17;
-
-    if (isCollected) {
-      collected += 1;
-      timeLeft += 2;
-      ripples.push({ x: core.x + bobX, y: core.y + bobY, age: 0, color: phases[core.phase].color });
-    }
-
-    return !isCollected;
-  });
-
-  for (const ripple of ripples) {
-    ripple.age += dt;
-  }
-  ripples = ripples.filter((ripple) => ripple.age < 0.65);
-
-  for (const point of trail) {
-    point.age += dt;
-  }
-  trail = trail.filter((point) => point.age < 0.5);
-
-  for (const spark of sparks) {
-    spark.y += spark.speed * dt;
-    spark.x += Math.sin((spark.y + spark.phase * 90) / 34) * dt * 12;
-    if (spark.y > canvas.height - 22) {
-      spark.y = 74;
-      spark.x = Math.random() * canvas.width;
-    }
-  }
-
-  if (collected === 9) {
-    won = true;
-    running = false;
-  }
-
-  updateHud();
-}
-
-function drawArena() {
-  const active = phases[phaseIndex];
-  ctx.fillStyle = "#111d18";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const gradient = ctx.createRadialGradient(512, 320, 30, 512, 320, 620);
-  gradient.addColorStop(0, active.dark);
-  gradient.addColorStop(1, "#101713");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.strokeStyle = "rgba(248,245,233,0.08)";
-  ctx.lineWidth = 1;
-  for (let x = 32; x < canvas.width; x += 48) {
-    ctx.beginPath();
-    ctx.moveTo(x, 70);
-    ctx.lineTo(x - 48, canvas.height - 24);
-    ctx.stroke();
-  }
-  for (let y = 82; y < canvas.height; y += 48) {
-    ctx.beginPath();
-    ctx.moveTo(26, y);
-    ctx.lineTo(canvas.width - 26, y);
-    ctx.stroke();
-  }
-
-  ctx.strokeStyle = "rgba(248,245,233,0.24)";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(28, 72, canvas.width - 56, canvas.height - 100);
-
-  for (const spark of sparks) {
-    const phase = phases[spark.phase];
-    ctx.globalAlpha = spark.phase === phaseIndex ? 0.72 : 0.2;
-    ctx.fillStyle = phase.color;
-    ctx.fillRect(spark.x, spark.y, spark.size, spark.size * 2.4);
-  }
-  ctx.globalAlpha = 1;
-}
-
-function drawCore(core) {
-  const phase = phases[core.phase];
-  const bobX = Math.cos(core.angle) * 8;
-  const bobY = Math.sin(core.angle * 1.3) * 8;
-  const x = core.x + bobX;
-  const y = core.y + bobY;
-  const active = core.phase === phaseIndex;
-
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.globalAlpha = active ? 1 : 0.32;
-  ctx.rotate(core.angle);
-  ctx.fillStyle = phase.color;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 13, 18, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.42)";
-  ctx.beginPath();
-  ctx.ellipse(-3, -6, 4, 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = active ? "#fff8d6" : phase.color;
-  ctx.lineWidth = active ? 3 : 1;
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawSentry(sentry) {
-  const phase = phases[sentry.phase];
-  const active = sentry.phase === phaseIndex;
-  ctx.save();
-  ctx.globalAlpha = active ? 0.95 : 0.24;
-  ctx.fillStyle = phase.color;
-  ctx.fillRect(sentry.x, sentry.y, sentry.w, sentry.h);
-  ctx.fillStyle = "rgba(16,23,19,0.42)";
-  ctx.fillRect(sentry.x + 8, sentry.y + 8, sentry.w - 16, sentry.h - 16);
-  ctx.strokeStyle = active ? "#fff8d6" : phase.color;
-  ctx.lineWidth = active ? 3 : 1;
-  ctx.strokeRect(sentry.x, sentry.y, sentry.w, sentry.h);
-  ctx.restore();
-}
-
-function drawPlayer() {
-  const active = phases[phaseIndex];
-  for (const point of trail) {
-    const progress = point.age / 0.5;
-    ctx.globalAlpha = 0.28 * (1 - progress);
-    ctx.fillStyle = point.color;
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, 13 * (1 - progress), 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-
-  ctx.save();
-  if (player.invulnerable > 0) {
-    ctx.globalAlpha = 0.48 + Math.sin(performance.now() / 65) * 0.28;
-  }
-  ctx.shadowColor = active.color;
-  ctx.shadowBlur = 24;
-  ctx.fillStyle = "#f8f5e9";
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = active.color;
-  ctx.beginPath();
-  ctx.arc(player.x + 6, player.y - 5, 6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = active.color;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, player.r + 7, -Math.PI / 3, Math.PI * 1.15);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawRipples() {
-  for (const ripple of ripples) {
-    const progress = ripple.age / 0.65;
-    ctx.strokeStyle = ripple.color;
-    ctx.globalAlpha = 1 - progress;
-    ctx.lineWidth = 4 - progress * 3;
-    ctx.beginPath();
-    ctx.arc(ripple.x, ripple.y, 20 + progress * 72, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+  for (const hazard of hazards) {
+    const isActive = hazard.userData.phase === phaseIndex;
+    hazard.material.opacity = isActive ? 0.88 : 0.2;
+    hazard.material.emissiveIntensity = isActive ? 0.72 : 0.12;
   }
 }
 
-function drawOverlay() {
-  if (running) return;
-
-  ctx.fillStyle = "rgba(16,23,19,0.7)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#f8f5e9";
-  ctx.textAlign = "center";
-  ctx.font = "800 38px system-ui, sans-serif";
-
-  let headline = "Press Start";
-  if (won) headline = "Rift stabilized";
-  if (!won && timeLeft === 0) headline = "Rift collapsed";
-
-  ctx.fillText(headline, canvas.width / 2, canvas.height / 2 - 16);
-  ctx.font = "600 18px system-ui, sans-serif";
-  ctx.fillText(
-    "Space changes phase. Matching color collects cores and activates hazards.",
-    canvas.width / 2,
-    canvas.height / 2 + 24,
-  );
-}
-
-function draw() {
-  drawArena();
-  for (const core of cores) drawCore(core);
-  for (const sentry of sentries) drawSentry(sentry);
-  drawRipples();
-  drawPlayer();
-  drawOverlay();
-}
-
-function loop(now) {
-  const dt = Math.min(0.033, (now - lastTick) / 1000);
-  lastTick = now;
-  update(dt);
-  draw();
-  requestAnimationFrame(loop);
-}
-
-window.addEventListener("keydown", (event) => {
+function onKeyDown(event) {
   const key = event.key.toLowerCase();
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
     event.preventDefault();
@@ -378,19 +442,155 @@ window.addEventListener("keydown", (event) => {
   if (key === " " && running) switchPhase(phaseIndex + 1);
   if (["1", "2", "3"].includes(key) && running) switchPhase(Number(key) - 1);
   keys.add(key);
-});
+}
 
-window.addEventListener("keyup", (event) => {
-  keys.delete(event.key.toLowerCase());
-});
+function updatePlayer(dt) {
+  const direction = new THREE.Vector3();
+  if (keys.has("arrowleft") || keys.has("a")) direction.x -= 1;
+  if (keys.has("arrowright") || keys.has("d")) direction.x += 1;
+  if (keys.has("arrowup") || keys.has("w")) direction.z -= 1;
+  if (keys.has("arrowdown") || keys.has("s")) direction.z += 1;
 
-startButton.addEventListener("click", () => {
-  if (timeLeft <= 0 || won) resetGame();
-  running = true;
-  lastTick = performance.now();
-});
+  if (direction.lengthSq() > 0) {
+    direction.normalize();
+    const speed = phaseIndex === 1 ? 7.1 : phaseIndex === 2 ? 5.85 : 6.35;
+    player.position.addScaledVector(direction, speed * dt);
+  }
 
-resetButton.addEventListener("click", resetGame);
+  player.position.x = THREE.MathUtils.clamp(player.position.x, -arena.halfX, arena.halfX);
+  player.position.z = THREE.MathUtils.clamp(player.position.z, -arena.halfZ, arena.halfZ);
+  player.rotation.y += dt * 2.4;
+  playerRing.position.copy(player.position);
+  playerRing.position.y = 0.52;
+  playerRing.rotation.z += dt * (phaseIndex === 2 ? 3.6 : 2.4);
+  playerLight.position.copy(player.position).add(new THREE.Vector3(0, 1.2, 0));
+}
 
-resetGame();
-requestAnimationFrame(loop);
+function updateEntities(dt, elapsed) {
+  riftGroup.rotation.y += dt * 0.18;
+  riftGroup.children.forEach((child, index) => {
+    child.rotation.z += dt * (index % 2 === 0 ? 0.45 : -0.32);
+    if (child.isMesh && child.material?.emissiveIntensity !== undefined) {
+      child.material.emissiveIntensity = 0.45 + Math.sin(elapsed * 2 + index) * 0.12 + (index === phaseIndex ? 0.45 : 0);
+    }
+  });
+
+  riftLights.forEach((light, index) => {
+    light.intensity = index === phaseIndex ? 4.8 : 1.4;
+  });
+
+  for (const core of cores) {
+    const data = core.userData;
+    core.position.y = data.baseY + Math.sin(elapsed * 2.2 + data.index) * 0.18;
+    core.rotation.y += dt * (1.4 + data.phase * 0.22);
+    core.rotation.z = Math.sin(elapsed * 1.8 + data.index) * 0.12;
+  }
+
+  for (const hazard of hazards) {
+    const data = hazard.userData;
+    const offset = Math.sin(elapsed * data.speed + data.index) * data.range;
+    hazard.position.x = data.axis === "x" ? data.baseX + offset : data.baseX;
+    hazard.position.z = data.axis === "z" ? data.baseZ + offset : data.baseZ;
+    hazard.rotation.y += dt * 0.18;
+  }
+
+  const positions = particles.geometry.attributes.position;
+  for (let i = 0; i < positions.count; i += 1) {
+    const y = positions.getY(i) + dt * (0.2 + (i % 9) * 0.025);
+    positions.setY(i, y > 9.5 ? 0.15 : y);
+  }
+  positions.needsUpdate = true;
+  particles.rotation.y += dt * 0.015;
+}
+
+function checkCollisions() {
+  const playerPos = player.position;
+
+  cores = cores.filter((core) => {
+    if (core.userData.phase !== phaseIndex) return true;
+    const distance = Math.hypot(playerPos.x - core.position.x, playerPos.z - core.position.z);
+    if (distance > 0.9) return true;
+
+    collected += 1;
+    timeLeft += 2.5;
+    scene.remove(core);
+    updateHud();
+    return false;
+  });
+
+  for (const hazard of hazards) {
+    if (hazard.userData.phase !== phaseIndex) continue;
+    const dx = Math.abs(playerPos.x - hazard.position.x);
+    const dz = Math.abs(playerPos.z - hazard.position.z);
+    const hitX = dx < hazard.userData.sx / 2 + 0.45;
+    const hitZ = dz < hazard.userData.sz / 2 + 0.45;
+    if (hitX && hitZ) {
+      player.position.set(0, 0.48, 0);
+      timeLeft = Math.max(0, timeLeft - 6);
+      showStatus("-6 seconds");
+      window.setTimeout(() => {
+        if (running) hideStatus();
+      }, 420);
+      break;
+    }
+  }
+}
+
+function updateGame(dt, elapsed) {
+  if (!running) return;
+
+  timeLeft -= dt;
+  if (timeLeft <= 0) {
+    timeLeft = 0;
+    running = false;
+    showStatus("Rift collapsed");
+  }
+
+  updatePlayer(dt);
+  updateEntities(dt, elapsed);
+  checkCollisions();
+
+  if (collected === 9) {
+    won = true;
+    running = false;
+    showStatus("Rift stabilized");
+  }
+
+  updateHud();
+}
+
+function updateCamera(dt) {
+  const target = new THREE.Vector3(player.position.x * 0.22, 13.5, player.position.z + 16.5);
+  camera.position.lerp(target, 1 - Math.pow(0.001, dt));
+  camera.lookAt(player.position.x * 0.2, 0.35, player.position.z - 1.5);
+}
+
+function showStatus(text) {
+  statusBanner.textContent = text;
+  statusBanner.classList.remove("hidden");
+}
+
+function hideStatus() {
+  statusBanner.classList.add("hidden");
+}
+
+function loop() {
+  const dt = Math.min(clock.getDelta(), 0.033);
+  const elapsed = clock.elapsedTime;
+
+  if (!running) updateEntities(dt, elapsed);
+  updateGame(dt, elapsed);
+  updateCamera(dt);
+
+  player.scale.setScalar(1 + Math.sin(elapsed * 5) * 0.025);
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+function resize() {
+  const width = mount.clientWidth;
+  const height = mount.clientHeight;
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height, false);
+}
