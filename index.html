@@ -103,18 +103,30 @@
           arcade/circuit prototype that maps better to Defold, Solar2D, Love2D,
           Cocos2d-x, PyGame, and similar 2D engines.
         </p>
-        <p class="direct-note">
-          If the embed does not appear in your browser, open it directly:
-          <a href="./circuit/">Mango Phase Circuit</a>.
-        </p>
       </div>
-      <div class="sample-frame-wrap">
-        <iframe
-          class="sample-frame"
-          src="./circuit/"
-          title="Mango Phase Circuit playable 2D game"
-          loading="lazy"
-        ></iframe>
+
+      <div class="circuit-root" id="circuitRoot">
+        <canvas id="circuitGame" width="1280" height="720" aria-label="Mango Phase Circuit playable game"></canvas>
+        <section class="circuit-hud" aria-label="Mango Phase Circuit status">
+          <div><span>Phase</span><strong id="circuitPhaseName">Sun</strong></div>
+          <div><span>Mangos</span><strong id="circuitMangoCount">0/3</strong></div>
+          <div><span>Score</span><strong id="circuitScore">0</strong></div>
+          <div><span>Arena</span><strong id="circuitArenaName">Easy</strong></div>
+          <div><span>Time</span><strong id="circuitTimer">90</strong></div>
+        </section>
+        <section class="circuit-dock" aria-label="Mango Phase Circuit controls">
+          <div class="actions">
+            <button id="circuitStartButton" type="button">Start</button>
+            <button id="circuitResetButton" type="button">Reset</button>
+          </div>
+          <div class="phase-buttons" aria-label="Mango Phase Circuit phase controls">
+            <button class="phase-button circuit-phase-button active" data-phase="0" type="button"><i class="sun"></i>Sun</button>
+            <button class="phase-button circuit-phase-button" data-phase="1" type="button"><i class="tide"></i>Tide</button>
+            <button class="phase-button circuit-phase-button" data-phase="2" type="button"><i class="ember"></i>Ember</button>
+          </div>
+          <p>WASD/arrows move. Same-color pads teleport. Wrong-color blocks subtract points.</p>
+        </section>
+        <div class="circuit-status status-banner" id="circuitStatus">Press Start</div>
       </div>
     </section>
 
@@ -166,5 +178,6 @@
     </section>
 
     <script type="module" src="./app.js"></script>
+    <script src="./circuit-inline.js"></script>
   </body>
 </html>

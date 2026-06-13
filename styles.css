@@ -405,30 +405,89 @@ h3 {
   line-height: 1.58;
 }
 
-.sample-intro .direct-note {
-  margin-top: 10px;
-}
-
-.sample-intro a {
-  color: var(--sun);
-  font-weight: 900;
-}
-
-.sample-frame-wrap {
+.circuit-root {
+  position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(10, 18, 16, 0.82);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  min-height: 680px;
 }
 
-.sample-frame {
+.circuit-root canvas {
   display: block;
   width: 100%;
-  height: min(760px, 82svh);
-  min-height: 620px;
-  border: 0;
+  height: 680px;
   background: #07100f;
+}
+
+.circuit-hud,
+.circuit-dock,
+.circuit-status {
+  position: absolute;
+  z-index: 2;
+}
+
+.circuit-hud {
+  top: 18px;
+  right: 18px;
+  display: flex;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+}
+
+.circuit-hud div {
+  min-width: 76px;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.circuit-hud span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.circuit-hud strong {
+  display: block;
+  margin-top: 2px;
+}
+
+.circuit-dock {
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  width: min(820px, calc(100% - 36px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+}
+
+.circuit-dock p {
+  max-width: 270px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.circuit-status {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .system-grid {
@@ -593,8 +652,34 @@ h3 {
     margin-right: 18px;
   }
 
-  .sample-frame {
-    height: 920px;
-    min-height: 920px;
+  .circuit-root {
+    min-height: 820px;
+  }
+
+  .circuit-root canvas {
+    height: 820px;
+  }
+
+  .circuit-hud {
+    left: 18px;
+    right: 18px;
+    top: auto;
+    bottom: 178px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .circuit-hud div {
+    min-width: 0;
+  }
+
+  .circuit-dock {
+    align-items: stretch;
+    flex-direction: column;
+    bottom: 12px;
+  }
+
+  .circuit-dock p {
+    max-width: none;
   }
 }
