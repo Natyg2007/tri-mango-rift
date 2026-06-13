@@ -866,8 +866,19 @@ function completeArena() {
 
   if (levelIndex >= arenaLevels.length - 1) {
     won = true;
-    player.position.set(0, 0.48, 0);
     showStatus("Rift stabilized");
+    wormholeGroup.visible = true;
+    wormholeGroup.position.set(0, 0.02, 0);
+    wormholeGroup.scale.setScalar(0.45);
+    wormholeLight.position.set(0, 1.2, 0);
+    dropTransition = {
+      stage: "winSuck",
+      elapsed: 0,
+      duration: 1.45,
+      start: player.position.clone(),
+      startAngle: Math.atan2(player.position.z, player.position.x),
+      startRadius: Math.max(2.2, Math.hypot(player.position.x, player.position.z)),
+    };
     updateHud();
     return;
   }
@@ -944,7 +955,7 @@ function updateDropTransition(dt) {
   const progress = Math.min(dropTransition.elapsed / dropTransition.duration, 1);
   const eased = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
-  if (dropTransition.stage === "suck") {
+  if (dropTransition.stage === "suck" || dropTransition.stage === "winSuck") {
     const spiralRadius = THREE.MathUtils.lerp(dropTransition.startRadius, 0.05, eased);
     const spiralAngle = dropTransition.startAngle + progress * Math.PI * 5.5;
     player.position.x = Math.cos(spiralAngle) * spiralRadius;
@@ -956,6 +967,13 @@ function updateDropTransition(dt) {
     wormholeGroup.scale.setScalar(THREE.MathUtils.lerp(0.35, 1.25, Math.min(progress * 1.4, 1)));
     wormholeLight.position.set(0, 1.2, 0);
     wormholeLight.intensity = THREE.MathUtils.lerp(1.2, 14, Math.sin(progress * Math.PI));
+  } else if (dropTransition.stage === "winClose") {
+    player.position.set(0, -2.6, 0);
+    player.scale.setScalar(0.12);
+    wormholeGroup.position.set(0, 0.02, 0);
+    wormholeGroup.scale.setScalar(THREE.MathUtils.lerp(1.25, 0.02, eased));
+    wormholeLight.position.set(0, 1.2, 0);
+    wormholeLight.intensity = THREE.MathUtils.lerp(10, 0, eased);
   } else {
     const dropRadius = (1 - eased) * 1.15;
     const dropAngle = progress * Math.PI * 4.8;
@@ -974,6 +992,27 @@ function updateDropTransition(dt) {
   playerRing.position.y = player.position.y + 0.04;
 
   if (progress >= 1) {
+    if (dropTransition.stage === "winSuck") {
+      showStatus("Wormhole closing");
+      dropTransition = {
+        stage: "winClose",
+        elapsed: 0,
+        duration: 0.95,
+      };
+      return;
+    }
+
+    if (dropTransition.stage === "winClose") {
+      dropTransition = null;
+      wormholeGroup.visible = false;
+      wormholeLight.intensity = 0;
+      player.position.set(0, 0.48, 0);
+      player.scale.setScalar(1);
+      document.querySelector("#game-root").classList.remove("is-playing");
+      showStatus("Press Start");
+      return;
+    }
+
     if (dropTransition.stage === "suck") {
       levelIndex = dropTransition.nextLevel;
       phaseIndex = arenaLevels[levelIndex].phase;
