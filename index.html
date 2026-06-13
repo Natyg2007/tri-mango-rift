@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Tri-Mango Rift 3D | Playable Game Prototype</title>
+    <title>Playable Game Systems Portfolio | 3D and 2D Prototypes</title>
     <meta
       name="description"
-      content="A playable 3D browser game prototype with phase switching, collectible routing, moving hazards, and polished presentation."
+      content="A submission-ready game development portfolio with one Three.js 3D prototype and two separate 2D canvas gameplay samples."
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -15,16 +15,15 @@
       <div id="sceneMount" aria-label="Playable 3D game scene"></div>
 
       <header class="topbar">
-        <a class="brand" href="#game-root" aria-label="Tri-Mango Rift 3D home">
+        <a class="brand" href="#game-root" aria-label="Playable game systems portfolio home">
           <span class="brand-mark"></span>
-          <span>Tri-Mango Rift 3D</span>
+          <span>Game Systems Portfolio</span>
         </a>
         <nav aria-label="Page sections">
-          <a href="#game-root">Play</a>
-          <a href="#second-sample">2D Sample</a>
-          <a href="#third-sample">Orbit Game</a>
-          <a href="#systems">Systems</a>
-          <a href="#notes">Notes</a>
+          <a href="#game-root">3D</a>
+          <a href="#second-sample">2D Phase</a>
+          <a href="#third-sample">Orbit</a>
+          <a href="#notes">Submission</a>
         </nav>
       </header>
 
@@ -32,9 +31,9 @@
         <p class="eyebrow">Playable Three.js prototype</p>
         <h1>Phase-shift through a floating mango rift.</h1>
         <p class="summary">
-          A compact 3D game sample with real-time movement, phase-matched
-          collectibles, active hazards, camera follow, lighting, particles, HUD
-          state, and restartable gameplay.
+          A polished browser-based gameplay sample with real-time 3D movement,
+          phase-matched objectives, active hazards, camera follow, lighting,
+          particles, HUD state, and restartable gameplay.
         </p>
         <div class="build-strip" aria-label="Prototype highlights">
           <span>3D arena</span>
@@ -45,7 +44,6 @@
         <div class="hero-links">
           <a href="#second-sample">Play the 2D sample</a>
           <a href="#third-sample">Play orbit sample</a>
-          <a href="./circuit/">Open 2D sample directly</a>
         </div>
       </section>
 
@@ -93,6 +91,45 @@
 
       <div class="status-banner" id="statusBanner">Press Start</div>
     </main>
+
+    <section class="section" id="systems">
+      <div class="section-heading">
+        <p class="eyebrow">Primary 3D sample</p>
+        <h2>Tri-Mango Rift 3D</h2>
+        <p>
+          A compact Three.js prototype built to show real-time game-loop work,
+          3D presentation, interaction design, and portable gameplay systems.
+        </p>
+      </div>
+      <div class="system-grid">
+        <article>
+          <span class="system-icon">01</span>
+          <h3>Phase-based mechanics</h3>
+          <p>
+            Matching-color rift blocks teleport the player across randomized
+            arenas. Clearing one color opens a center wormhole and drops into a
+            harder stage from above.
+          </p>
+        </article>
+        <article>
+          <span class="system-icon">02</span>
+          <h3>3D entity loop</h3>
+          <p>
+            Player movement, random mango spawns, spinning obstacle volumes,
+            paired teleport gates, camera smoothing, scoring, collision checks,
+            and restart flow.
+          </p>
+        </article>
+        <article>
+          <span class="system-icon">03</span>
+          <h3>Presentation polish</h3>
+          <p>
+            Real-time lighting, depth fog, animated particles, emissive materials,
+            layered HUD, responsive composition, and readable controls.
+          </p>
+        </article>
+      </div>
+    </section>
 
     <section class="circuit-root" id="second-sample">
       <div id="circuitRoot">
@@ -220,52 +257,24 @@
       </div>
     </section>
 
-    <section class="section" id="systems">
-      <div class="section-heading">
-        <p class="eyebrow">What it demonstrates</p>
-        <h2>3D game systems in the prototype</h2>
-      </div>
-      <div class="system-grid">
-        <article>
-          <span class="system-icon">01</span>
-          <h3>Phase-based mechanics</h3>
-          <p>
-            Matching-color rift blocks teleport the player across randomized
-            arenas. Clearing one color opens a center wormhole and drops into a
-            harder stage from above.
-          </p>
-        </article>
-        <article>
-          <span class="system-icon">02</span>
-          <h3>3D entity loop</h3>
-          <p>
-            Player movement, random mango spawns, spinning obstacle volumes,
-            paired teleport gates, camera smoothing, scoring, collision checks,
-            and restart flow.
-          </p>
-        </article>
-        <article>
-          <span class="system-icon">03</span>
-          <h3>Presentation polish</h3>
-          <p>
-            Real-time lighting, depth fog, animated particles, emissive materials,
-            layered HUD, responsive composition, and readable controls.
-          </p>
-        </article>
-      </div>
-    </section>
-
     <section class="section notes" id="notes">
       <div>
-        <p class="eyebrow">Submission note</p>
-        <h2>Use this as the work sample link</h2>
+        <p class="eyebrow">Submission-ready work sample</p>
+        <h2>Three playable prototypes, one focused portfolio link.</h2>
       </div>
-      <p>
-        This standalone HTML/CSS/JavaScript project includes one Three.js 3D
-        game and two separate 2D canvas prototypes. It is designed to show
-        gameplay implementation, engine thinking, visual polish, and multiple
-        playable mechanics instead of a static portfolio page.
-      </p>
+      <div>
+        <p>
+          This standalone HTML/CSS/JavaScript project includes one Three.js 3D
+          game and two separate 2D canvas prototypes. It is designed to show
+          gameplay implementation, engine thinking, visual polish, and multiple
+          playable mechanics instead of a static portfolio page.
+        </p>
+        <ul class="submission-list">
+          <li>Custom input, collision, scoring, timer, and restart systems.</li>
+          <li>Randomized arenas, progression rules, hazards, and objective loops.</li>
+          <li>Responsive HUDs and polished presentation for desktop and mobile.</li>
+        </ul>
+      </div>
     </section>
 
     <script type="module" src="./app.js"></script>

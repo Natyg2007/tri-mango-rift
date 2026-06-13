@@ -26,6 +26,8 @@ body {
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
 
 a {
@@ -117,18 +119,25 @@ nav,
 }
 
 nav {
-  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 nav a {
   color: var(--muted);
-  font-size: 0.94rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 0.86rem;
   font-weight: 850;
   text-decoration: none;
 }
 
 nav a:hover {
+  border-color: rgba(255, 248, 233, 0.18);
   color: var(--ink);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .hero-copy {
@@ -383,6 +392,7 @@ h3 {
 }
 
 .section-heading {
+  max-width: 880px;
   margin-bottom: 24px;
 }
 
@@ -583,10 +593,20 @@ h3 {
     linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.015)),
     rgba(14, 24, 20, 0.84);
   box-shadow: none;
+  transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+}
+
+.system-grid article:hover {
+  border-color: rgba(255, 248, 233, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.022)),
+    rgba(14, 24, 20, 0.92);
+  transform: translateY(-2px);
 }
 
 .system-grid p,
-.notes p {
+.notes p,
+.submission-list {
   margin: 0;
   color: var(--muted);
   line-height: 1.58;
@@ -611,6 +631,17 @@ h3 {
   gap: 24px;
   margin: 0 5vw 72px;
   padding: 28px;
+}
+
+.submission-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding-left: 18px;
+}
+
+.submission-list li::marker {
+  color: var(--sun);
 }
 
 @media (max-width: 920px) {
@@ -677,7 +708,7 @@ h3 {
 
 @media (max-width: 640px) {
   #game-root {
-    min-height: 100svh;
+    min-height: 980px;
   }
 
   .topbar {
@@ -689,9 +720,14 @@ h3 {
 
   nav {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 8px;
     flex-wrap: wrap;
+  }
+
+  nav a {
+    padding: 6px 8px;
+    font-size: 0.8rem;
   }
 
   .hero-copy {
